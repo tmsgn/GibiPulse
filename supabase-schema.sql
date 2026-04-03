@@ -31,6 +31,8 @@ CREATE TABLE report_groups (
 CREATE TABLE reports (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   student_id TEXT NOT NULL,
+  building TEXT NOT NULL,
+  dorm_number TEXT NOT NULL,
   raw_message TEXT NOT NULL,
   issue_type issue_type NOT NULL,
   location TEXT NOT NULL,

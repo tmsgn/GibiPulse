@@ -31,6 +31,8 @@ interface RecentIssue {
 
 export default function StudentPage() {
   const [studentId, setStudentId] = useState("");
+  const [building, setBuilding] = useState("");
+  const [dormNumber, setDormNumber] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<SubmitResult | null>(null);
@@ -52,6 +54,14 @@ export default function StudentPage() {
       toast.error("Please enter your student ID");
       return;
     }
+    if (!building.trim()) {
+      toast.error("Please enter your building name");
+      return;
+    }
+    if (!dormNumber.trim()) {
+      toast.error("Please enter your dorm number");
+      return;
+    }
     if (!message.trim()) {
       toast.error("Please describe the issue");
       return;
@@ -66,6 +76,8 @@ export default function StudentPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           student_id: studentId.trim(),
+          building: building.trim(),
+          dorm_number: dormNumber.trim(),
           message: message.trim(),
         }),
       });
@@ -249,6 +261,38 @@ export default function StudentPage() {
                   maxLength={10}
                   inputMode="numeric"
                 />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2 group">
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest group-focus-within:text-blue-600 transition-colors">
+                  Building
+                </label>
+                <div className="relative">
+                  <Input
+                    type="text"
+                    placeholder="e.g. Guna"
+                    value={building}
+                    onChange={(e) => setBuilding(e.target.value)}
+                    className="pl-4 h-12 bg-gray-50/50 border-gray-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 rounded-xl text-sm transition-all"
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-2 group">
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest group-focus-within:text-blue-600 transition-colors">
+                  Dorm Number
+                </label>
+                <div className="relative">
+                  <Input
+                    type="text"
+                    placeholder="e.g. 104"
+                    value={dormNumber}
+                    onChange={(e) => setDormNumber(e.target.value)}
+                    className="pl-4 h-12 bg-gray-50/50 border-gray-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 rounded-xl text-sm transition-all"
+                  />
+                </div>
               </div>
             </div>
 

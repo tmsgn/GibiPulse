@@ -5,11 +5,11 @@ import type { SeverityLevel } from "@/lib/types";
 
 export async function POST(request: NextRequest) {
   try {
-    const { student_id, message } = await request.json();
+    const { student_id, building, dorm_number, message } = await request.json();
 
-    if (!student_id || !message) {
+    if (!student_id || !building || !dorm_number || !message) {
       return NextResponse.json(
-        { error: "Student ID and message are required" },
+        { error: "Student ID, Building, Dorm Number, and message are required" },
         { status: 400 }
       );
     }
@@ -72,6 +72,8 @@ export async function POST(request: NextRequest) {
       // Insert individual report linked to group
       await supabase.from("reports").insert({
         student_id: student_id.trim(),
+        building: building.trim(),
+        dorm_number: dorm_number.trim(),
         raw_message: message.trim(),
         issue_type: analysis.issue_type,
         location: analysis.location,
@@ -115,6 +117,8 @@ export async function POST(request: NextRequest) {
     // Insert individual report
     const { error: reportError } = await supabase.from("reports").insert({
       student_id: student_id.trim(),
+      building: building.trim(),
+      dorm_number: dorm_number.trim(),
       raw_message: message.trim(),
       issue_type: analysis.issue_type,
       location: analysis.location,
