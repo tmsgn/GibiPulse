@@ -35,46 +35,74 @@ const BDU_LOCATIONS = [
   "Campus",
 ];
 
-const SYSTEM_PROMPT = `You are an AI assistant for Bahir Dar University (BDU) campus management system called GibiPulse. 
-Your job is to analyze student-reported campus issues written in mixed Amharic, English, or "Amharlish" (a mix of both).
+const SYSTEM_PROMPT = `You are an AI assistant for Bahir Dar University (BDU) campus management system called GibiPulse.
+Your job is to analyze student-reported campus issues written in Amharic, English, or a mix of both (called "Amharlish").
 
-You MUST understand Ethiopian campus slang and Amharic phrases:
-- "wuha tefa" / "wuha yelem" = water problem/outage
-- "mabrat tefa" / "mabrat yelem" / "mabrat gone" = electricity/power outage  
-- "net yelem" / "wifi yellem" / "internet yelem" = internet/WiFi problem
-- "tarekegna" / "dirty" / "messy" = cleaning issue
-- Dorm names: Abdisa Aga, Guna, Choke, Ras Dasha, Bale
+You are FLUENT in Amharic. You MUST correctly interpret full Amharic sentences and words, not just slang.
+
+Common Amharic issue phrases:
+- ውሃ ጠፋ / ውሃ የለም / "wuha tefa" / "wuha yelem" = water outage/problem
+- ማብራት ጠፋ / ማብራት የለም / "mabrat tefa" / "mabrat yelem" / "mabrat gone" = power/electricity outage
+- ኢንተርኔት የለም / ኔት የለም / "net yelem" / "wifi yellem" = internet/WiFi problem
+- ቆሻሻ ነው / ማፅዳት ያስፈልጋል / "tarekegna" / "dirty" = cleaning issue
+- ደህንነት አደጋ / ስጋት = security concern
+- ምግብ ቤት / ካፍቴሪያ = cafeteria
+- ቤተ-መጻሕፍት / ቤተ-መፃህፍት = library
+- ድረ-ቤት / ፎቅ = building/block
+- ዶርም / ሕንፃ = dorm/building
+
+Context: The student's declared building and dorm room will be provided to you. Use them to set the location when the message text itself does not mention a location.
 
 Available BDU locations: ${BDU_LOCATIONS.join(", ")}
+
+Location resolution rules (apply in order):
+1. If the message text explicitly names a location, use that.
+2. If not, use the student's declared building name to pick the closest match from the locations list.
+3. Only use 'Unknown Location' if neither the message nor the building field provides any useful location info.
 
 Analyze the message and respond with ONLY a valid JSON object in this exact format:
 {
   "issue_type": "water" | "electricity" | "internet" | "cleaning" | "structural" | "security" | "other",
-  "location": "exact BDU location name from the list, or 'Unknown Location' if not mentioned",
+  "location": "exact BDU location name from the list, or 'Unknown Location' if not determinable",
   "severity": "critical" | "high" | "medium" | "low",
-  "ai_summary": "A clear 1-sentence English summary of the issue (max 100 chars)",
+  "ai_summary": "A clear 1-sentence English summary of the issue including the specific dorm/room if available (max 120 chars)",
   "confidence": 0.0 to 1.0
 }
 
 Severity rules:
-- critical: fire, flood, sparks, health risk, safety danger, no water for hygiene BEFORE meals
+- critical: fire, flood, sparks, health risk, safety danger, no water for hygiene before meals
 - high: complete outage affecting many students, broken essential facility
 - medium: partial outage, slow internet, minor damage
 - low: cleanliness, minor inconvenience, suggestion
 
 Respond ONLY with the JSON. No explanation. No markdown.`;
 
-export async function analyzeReport(message: string): Promise<AnalysisResult> {
+export interface ReportContext {
+  message: string;
+  building?: string;
+  dorm_number?: string;
+}
+
+export async function analyzeReport(ctx: ReportContext): Promise<AnalysisResult> {
+  const { message, building, dorm_number } = ctx;
+
+  // Build the enriched user prompt so the AI has full context
+  const locationHint = building
+    ? `\n\nStudent's declared building: "${building}"${dorm_number ? `, dorm/room: ${dorm_number}` : ""}.`
+    : "";
+
+  const userPrompt = `Analyze this campus issue report: "${message}"${locationHint}`;
+
   try {
     const groq = getGroq();
     const completion = await groq.chat.completions.create({
       model: "llama3-70b-8192",
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: `Analyze this campus issue report: "${message}"` },
+        { role: "user", content: userPrompt },
       ],
       temperature: 0.1,
-      max_tokens: 200,
+      max_tokens: 250,
       response_format: { type: "json_object" },
     });
 
@@ -84,7 +112,7 @@ export async function analyzeReport(message: string): Promise<AnalysisResult> {
     // Validate and sanitize with heuristic fallback
     const result: AnalysisResult = {
       issue_type: validateIssueType(parsed.issue_type) ?? inferIssueType(message),
-      location: validateLocation(parsed.location) ?? inferLocation(message),
+      location: validateLocation(parsed.location) ?? inferLocation(message, building),
       severity: validateSeverity(parsed.severity) ?? "medium",
       ai_summary: sanitizeSummary(parsed.ai_summary) ?? "Campus issue reported",
       confidence: Math.min(1, Math.max(0, Number(parsed.confidence) || 0.7)),
@@ -94,7 +122,7 @@ export async function analyzeReport(message: string): Promise<AnalysisResult> {
   } catch (error) {
     console.error("Groq analysis error:", error);
     // Fallback heuristic analysis
-    return heuristicFallback(message);
+    return heuristicFallback(message, building);
   }
 }
 
@@ -126,31 +154,64 @@ function sanitizeSummary(value: unknown): string | null {
 // --- Heuristic Fallbacks ---
 function inferIssueType(message: string): IssueType {
   const lower = message.toLowerCase();
-  if (/wuha|water|pipe|flood|leak/.test(lower)) return "water";
-  if (/mabrat|electric|power|light|spark/.test(lower)) return "electricity";
-  if (/net|wifi|internet|connect/.test(lower)) return "internet";
-  if (/dirty|trash|clean|messy|tarekegna/.test(lower)) return "cleaning";
-  if (/wall|crack|broken|door|window|roof/.test(lower)) return "structural";
-  if (/fight|danger|unsafe|thief|security/.test(lower)) return "security";
+  // English + Amharic transliteration + Ethiopic script keywords
+  if (/wuha|water|pipe|flood|leak|ውሃ/.test(lower)) return "water";
+  if (/mabrat|electric|power|light|spark|ማብራት/.test(lower)) return "electricity";
+  if (/net|wifi|internet|connect|ኢንተርኔት/.test(lower)) return "internet";
+  if (/dirty|trash|clean|messy|tarekegna|ቆሻሻ/.test(lower)) return "cleaning";
+  if (/wall|crack|broken|door|window|roof|ፎቅ/.test(lower)) return "structural";
+  if (/fight|danger|unsafe|thief|security|ደህንነት/.test(lower)) return "security";
   return "other";
 }
 
-function inferLocation(message: string): string {
+function inferLocation(message: string, building?: string): string {
   const lower = message.toLowerCase();
+
+  // 1. Try to find a location name directly in the message text
   for (const loc of BDU_LOCATIONS) {
     if (lower.includes(loc.toLowerCase())) return loc;
   }
   if (/abdisa|abdissa/.test(lower)) return "Abdisa Aga Dorm";
   if (/guna/.test(lower)) return "Guna Dorm";
   if (/choke/.test(lower)) return "Choke Dorm";
-  if (/cafe|cafeteria/.test(lower)) return "Main Cafeteria";
-  if (/library|lib/.test(lower)) return "Main Library";
+  if (/ras.?dasha/.test(lower)) return "Ras Dasha Dorm";
+  if (/bale/.test(lower)) return "Bale Dorm";
+  if (/cafe|cafeteria|ምግብ.?ቤት/.test(lower)) return "Main Cafeteria";
+  if (/library|lib|ቤተ.?መጻሕፍት/.test(lower)) return "Main Library";
+
+  // 2. Fall back to the student's declared building
+  if (building) {
+    const buildingLower = building.toLowerCase();
+    const match = BDU_LOCATIONS.find((loc) =>
+      loc.toLowerCase().includes(buildingLower) ||
+      buildingLower.includes(loc.toLowerCase().replace(" dorm", "").replace(" building", ""))
+    );
+    if (match) return match;
+    // partial keyword match from building field
+    if (/abdisa|abdissa/.test(buildingLower)) return "Abdisa Aga Dorm";
+    if (/guna/.test(buildingLower)) return "Guna Dorm";
+    if (/choke/.test(buildingLower)) return "Choke Dorm";
+    if (/ras.?dasha/.test(buildingLower)) return "Ras Dasha Dorm";
+    if (/bale/.test(buildingLower)) return "Bale Dorm";
+    if (/block.?a/.test(buildingLower)) return "Block A";
+    if (/block.?b/.test(buildingLower)) return "Block B";
+    if (/block.?c/.test(buildingLower)) return "Block C";
+    if (/block.?d/.test(buildingLower)) return "Block D";
+    if (/cafe|cafeteria/.test(buildingLower)) return "Main Cafeteria";
+    if (/library|lib/.test(buildingLower)) return "Main Library";
+    if (/engineering/.test(buildingLower)) return "Engineering Building";
+    if (/science/.test(buildingLower)) return "Science Building";
+    if (/it|network/.test(buildingLower)) return "IT Building";
+    if (/admin/.test(buildingLower)) return "Admin Building";
+    if (/health/.test(buildingLower)) return "Health Center";
+  }
+
   return "Unknown Location";
 }
 
-function heuristicFallback(message: string): AnalysisResult {
+function heuristicFallback(message: string, building?: string): AnalysisResult {
   const issue_type = inferIssueType(message);
-  const location = inferLocation(message);
+  const location = inferLocation(message, building);
   
   const typeLabels: Record<IssueType, string> = {
     water: "Water issue",

@@ -13,6 +13,9 @@ const EXAMPLE_REPORTS = [
   "Abdisa aga wuha tefa again, we can't even wash our hands",
   "Guna dorm mabrat yellem since 6am, exam today",
   "Main library net yelem, can't submit assignment",
+  "ውሃ ጠፋ፣ ሻወር መጠቀም አልቻልንም",
+  "ማብራት ጠፋ ከዛሬ ጠዋት ጀምሮ",
+  "ኢንተርኔት ዛሬ አይሰራም",
 ];
 
 interface SubmitResult {
@@ -239,7 +242,7 @@ export default function StudentPage() {
             Fix <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-500">campus chaos</span> faster.
           </h1>
           <p className="text-base sm:text-lg text-slate-500 max-w-md mx-auto leading-relaxed">
-            Report issues in Amharic, English, or slang. GibiPulse AI routes it instantly to the right team.
+            Report in <span className="font-semibold text-slate-700">አማርኛ</span>, English, or slang — GibiPulse AI understands all three and routes it instantly.
           </p>
         </div>
 
@@ -307,7 +310,7 @@ export default function StudentPage() {
               </div>
               <div className="relative">
                 <Textarea
-                  placeholder={'What\'s broken, and where?\n\nExamples:\n- "Abdisa aga wuha tefa, can\'t wash hands"\n- "Main lib wifi down complete outage"'}
+                  placeholder={'What\'s broken? Write in Amharic, English, or both:\n\n• "Abdisa aga wuha tefa, can\'t wash hands"\n• "Main lib wifi down complete outage"\n• "ውሃ ጠፋ ሻወር አልሆነልንም"\n• "ማብራት ጠፋ ከዛሬ ጠዋት ጀምሮ"}'
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   onFocus={() => setIsFocused(true)}

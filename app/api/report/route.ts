@@ -29,8 +29,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Analyze with Groq AI
-    const analysis = await analyzeReport(message.trim());
+    // Analyze with Groq AI — pass building & dorm as location context
+    const analysis = await analyzeReport({
+      message: message.trim(),
+      building: building.trim(),
+      dorm_number: dorm_number.trim(),
+    });
 
     const supabase = await createClient();
 
