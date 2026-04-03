@@ -41,27 +41,29 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex w-14 h-14 rounded-2xl bg-blue-600 items-center justify-center mb-4 shadow-lg shadow-blue-200">
-            <Zap className="w-7 h-7 text-white" />
+          <div className="inline-flex w-14 h-14 rounded-2xl bg-primary items-center justify-center mb-4 shadow-lg shadow-primary/20">
+            <Zap className="w-7 h-7 text-primary-foreground" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">GibiPulse</h1>
-          <p className="text-sm text-gray-500 mt-1">Admin Control Panel</p>
+          <h1 className="text-2xl font-bold tracking-tight text-transparent bg-clip-text bg-linear-to-r from-foreground to-foreground/70">
+            GibiPulse
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">Admin Control Panel</p>
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+        <div className="bg-card text-card-foreground rounded-2xl border border-border shadow-sm p-6">
           <div className="flex items-center gap-2 mb-5">
-            <ShieldCheck className="w-4 h-4 text-blue-600" />
-            <p className="text-sm font-medium text-gray-700">Staff Login</p>
+            <ShieldCheck className="w-4 h-4 text-primary" />
+            <p className="text-sm font-medium text-foreground">Staff Login</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label className="block text-sm font-medium text-foreground mb-1.5">
                 Email Address
               </label>
               <Input
@@ -71,11 +73,12 @@ export default function AdminLoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="email"
+                className="bg-background border-border text-foreground"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label className="block text-sm font-medium text-foreground mb-1.5">
                 Password
               </label>
               <Input
@@ -85,6 +88,7 @@ export default function AdminLoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 autoComplete="current-password"
+                className="bg-background border-border text-foreground"
               />
             </div>
 
@@ -105,7 +109,7 @@ export default function AdminLoginPage() {
           </form>
         </div>
 
-        <p className="text-center text-xs text-gray-400 mt-6">
+        <p className="text-center text-xs text-muted-foreground mt-6">
           For access, contact BDU IT Department
         </p>
       </div>
