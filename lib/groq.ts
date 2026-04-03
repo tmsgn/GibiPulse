@@ -65,7 +65,7 @@ Analyze the message and respond with ONLY a valid JSON object in this exact form
   "issue_type": "water" | "electricity" | "internet" | "cleaning" | "structural" | "security" | "other",
   "location": "exact BDU location name from the list, or 'Unknown Location' if not determinable",
   "severity": "critical" | "high" | "medium" | "low",
-  "ai_summary": "A clear 1-sentence English summary of the issue including the specific dorm/room if available (max 120 chars)",
+  "ai_summary": "A 1-sentence English summary. MUST start with the specific Building and Dorm/Room number (e.g., '[Bale Dorm, Room 102] Water is...'). Max 120 chars.",
   "confidence": 0.0 to 1.0
 }
 
