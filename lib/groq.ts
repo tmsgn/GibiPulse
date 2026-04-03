@@ -59,13 +59,14 @@ Location resolution rules (apply in order):
 1. If the message text explicitly names a location, use that.
 2. If not, use the student's declared building name to pick the closest match from the locations list.
 3. Only use 'Unknown Location' if neither the message nor the building field provides any useful location info.
+4. CRITICAL SUMMARY RULE: If a building or dorm room is declared or mentioned, your \`ai_summary\` MUST start with it in brackets. Example: "[Abdisa Aga Dorm, Room 104] Internet is completely down."
 
 Analyze the message and respond with ONLY a valid JSON object in this exact format:
 {
   "issue_type": "water" | "electricity" | "internet" | "cleaning" | "structural" | "security" | "other",
   "location": "exact BDU location name from the list, or 'Unknown Location' if not determinable",
   "severity": "critical" | "high" | "medium" | "low",
-  "ai_summary": "A 1-sentence English summary. MUST start with the specific Building and Dorm/Room number (e.g., '[Bale Dorm, Room 102] Water is...'). Max 120 chars.",
+  "ai_summary": "A 1-sentence English summary. MUST begin with the bracketed [Building, Room] as instructed above. Max 140 chars.",
   "confidence": 0.0 to 1.0
 }
 
@@ -130,7 +131,7 @@ export async function analyzeReport(ctx: ReportContext): Promise<AnalysisResult>
   } catch (error) {
     console.error("Groq analysis error:", error);
     // Fallback heuristic analysis
-    return heuristicFallback(message, building);
+    return heuristicFallback(message, building, dorm_number);
   }
 }
 
@@ -217,7 +218,7 @@ function inferLocation(message: string, building?: string): string {
   return "Unknown Location";
 }
 
-function heuristicFallback(message: string, building?: string): AnalysisResult {
+function heuristicFallback(message: string, building?: string, dorm_number?: string): AnalysisResult {
   const issue_type = inferIssueType(message);
   const location = inferLocation(message, building);
   
@@ -231,11 +232,16 @@ function heuristicFallback(message: string, building?: string): AnalysisResult {
     other: "Campus issue",
   };
 
+  const roomText = dorm_number ? `, Room ${dorm_number}` : "";
+  const locationPrefix = (building || location !== "Unknown Location") 
+    ? `[${building || location}${roomText}] ` 
+    : "";
+
   return {
     issue_type,
     location,
     severity: "medium",
-    ai_summary: `${typeLabels[issue_type]} reported at ${location}`,
+    ai_summary: `${locationPrefix}${typeLabels[issue_type]} reported`,
     confidence: 0.5,
   };
 }

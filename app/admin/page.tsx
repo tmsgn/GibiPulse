@@ -38,7 +38,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filterType, setFilterType] = useState<string>("all");
-  const [filterStatus, setFilterStatus] = useState<string>("open");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
@@ -410,8 +410,8 @@ export default function AdminDashboard() {
 
                     {/* Status + Assigned */}
                     <div className="px-4 pb-3 flex items-center gap-2 flex-wrap bg-muted/20 pt-2 border-t border-border mt-1">
-                      <Badge className={`text-xs ${statusConfig?.bg} border-0`}>
-                        {statusConfig?.label}
+                      <Badge className={`text-[11px] uppercase tracking-wider font-bold shadow-sm ${statusConfig?.bg}`}>
+                        ● {statusConfig?.label}
                       </Badge>
                       {group.assigned_to && (
                         <span className="text-xs text-muted-foreground">
