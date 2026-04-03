@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import {
   Zap, LogOut, RefreshCw, CheckCircle2, Clock,
-  AlertTriangle, Users, BarChart3, Filter
+  AlertTriangle, Users, BarChart3, Filter, Sparkles, Image as ImageIcon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -163,12 +163,12 @@ export default function AdminDashboard() {
       <div className="bg-card border-b border-border sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <Zap className="w-4 h-4 text-primary-foreground" />
+            <div className="w-10 h-10 rounded-xl bg-linear-to-br from-primary to-blue-600 flex items-center justify-center shadow-lg shadow-primary/20">
+              <Zap className="w-5 h-5 text-white" />
             </div>
             <div>
-              <p className="font-bold text-foreground text-sm">GibiPulse Admin</p>
-              <p className="text-xs text-muted-foreground">Bahir Dar University</p>
+              <p className="font-bold text-sm tracking-tight text-transparent bg-clip-text bg-linear-to-r from-foreground to-foreground/70">GibiPulse Admin</p>
+              <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest">Bahir Dar University</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -358,40 +358,54 @@ export default function AdminDashboard() {
                 return (
                   <div
                     key={group.id}
-                    className={`bg-card rounded-2xl border shadow-none overflow-hidden transition-opacity ${
-                      isUpdating ? "opacity-60" : ""
-                    } ${group.severity === "critical" && group.status !== "resolved" ? "border-red-500/50" : "border-border"}`}
+                    className={`bg-card rounded-xl border shadow-sm hover:shadow-md overflow-hidden transition-all duration-300 ${
+                      isUpdating ? "opacity-60 scale-[0.99]" : ""
+                    } ${group.severity === "critical" && group.status !== "resolved" ? "border-red-500/50 shadow-red-500/5" : "border-border"}`}
                   >
                     {/* Issue Header */}
                     <div className="px-4 py-3 flex items-start justify-between gap-3">
                       <div className="flex items-start gap-3 flex-1 min-w-0">
-                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-lg ${issueConfig?.bg}`}>
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-xl shadow-inner ${issueConfig?.bg}`}>
                           {issueConfig?.icon}
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <p className="text-sm font-semibold text-foreground">{group.ai_summary}</p>
+                        <div className="flex-1 min-w-0 pt-0.5">
+                          <div className="flex items-center gap-2 flex-wrap mb-1">
+                            <span className="inline-flex items-center gap-1 text-[10px] uppercase font-bold text-blue-500 bg-blue-500/10 px-1.5 py-0.5 rounded-sm">
+                              <Sparkles className="w-3 h-3" />
+                              {group.image_url ? "Vision AI Verified" : "AI Filtered"}
+                            </span>
                           </div>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            📍 {group.location} · {timeAgo(group.created_at)}
+                          <p className="text-[15px] leading-tight font-semibold text-foreground">{group.ai_summary}</p>
+                          <p className="text-xs font-medium text-muted-foreground mt-1.5 flex items-center gap-1.5 flex-wrap">
+                            <span className="text-foreground bg-muted px-1.5 py-0.5 rounded-md">📍 {group.location}</span>
+                            <span>•</span>
+                            <span>{timeAgo(group.created_at)}</span>
                           </p>
                         </div>
                       </div>
 
-                      <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-                        <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full border ${severityConfig?.bg}`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${severityConfig?.dot}`} />
+                      <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                        {group.image_url && (
+                          <div className="relative w-12 h-12 rounded-lg overflow-hidden border border-border group-hover:border-primary/50 transition-colors">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={group.image_url} alt="Evidence" className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                              <ImageIcon className="w-4 h-4 text-white" />
+                            </div>
+                          </div>
+                        )}
+                        <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-wider ${severityConfig?.bg}`}>
                           {severityConfig?.label}
                         </span>
-                        <div className="flex items-center gap-1 text-muted-foreground">
-                          <Users className="w-3 h-3" />
-                          <span className="text-xs font-semibold">{group.report_count}</span>
+                        <div className="flex items-center gap-1 text-muted-foreground bg-muted px-2 py-0.5 rounded-md text-xs font-medium border border-border shadow-sm">
+                          <Users className="w-3.5 h-3.5 text-primary" />
+                          {group.report_count} match{group.report_count !== 1 ? 'es' : ''}
                         </div>
                       </div>
                     </div>
 
                     {/* Status + Assigned */}
-                    <div className="px-4 pb-3 flex items-center gap-2 flex-wrap">
+                    <div className="px-4 pb-3 flex items-center gap-2 flex-wrap bg-muted/20 pt-2 border-t border-border mt-1">
                       <Badge className={`text-xs ${statusConfig?.bg} border-0`}>
                         {statusConfig?.label}
                       </Badge>
@@ -404,7 +418,7 @@ export default function AdminDashboard() {
 
                     {/* Actions */}
                     {group.status !== "resolved" && (
-                      <div className="px-4 pb-4 flex items-center gap-2 border-t border-border pt-3">
+                      <div className="px-4 pb-3 flex items-center gap-2 bg-muted/20">
                         <Select
                           value={group.assigned_to ?? ""}
                           onValueChange={(val) =>
