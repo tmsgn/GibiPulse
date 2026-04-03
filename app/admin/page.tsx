@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import {
   Zap, LogOut, RefreshCw, CheckCircle2, Clock,
-  AlertTriangle, Users, BarChart3, Filter, Sparkles, Image as ImageIcon
+  AlertTriangle, Users, BarChart3, Filter, Sparkles, Image as ImageIcon, X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +40,7 @@ export default function AdminDashboard() {
   const [filterType, setFilterType] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("open");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const fetchGroups = useCallback(async () => {
     try {
@@ -386,7 +387,10 @@ export default function AdminDashboard() {
 
                       <div className="flex flex-col items-end gap-2 flex-shrink-0">
                         {group.image_url && (
-                          <div className="relative w-12 h-12 rounded-lg overflow-hidden border border-border group-hover:border-primary/50 transition-colors">
+                          <div 
+                            className="relative w-12 h-12 rounded-lg overflow-hidden border border-border group-hover:border-primary/50 transition-colors cursor-zoom-in"
+                            onClick={() => setSelectedImage(group.image_url!)}
+                          >
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={group.image_url} alt="Evidence" className="w-full h-full object-cover" />
                             <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -472,6 +476,30 @@ export default function AdminDashboard() {
           )}
         </div>
       </div>
+
+      {/* Fullscreen Image Modal */}
+      {selectedImage && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 cursor-zoom-out"
+          onClick={() => setSelectedImage(null)}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img 
+            src={selectedImage} 
+            alt="Evidence full view" 
+            className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-4 right-4 text-white hover:bg-white/20"
+            onClick={() => setSelectedImage(null)}
+          >
+            <X className="w-6 h-6" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
