@@ -81,26 +81,34 @@ export interface ReportContext {
   message: string;
   building?: string;
   dorm_number?: string;
+  image_url?: string;
 }
 
 export async function analyzeReport(ctx: ReportContext): Promise<AnalysisResult> {
-  const { message, building, dorm_number } = ctx;
+  const { message, building, dorm_number, image_url } = ctx;
 
   // Build the enriched user prompt so the AI has full context
   const locationHint = building
     ? `\n\nStudent's declared building: "${building}"${dorm_number ? `, dorm/room: ${dorm_number}` : ""}.`
     : "";
 
-  const userPrompt = `Analyze this campus issue report: "${message}"${locationHint}`;
+  const userPromptText = `Analyze this campus issue report: "${message}"${locationHint}`;
+
+  const userMessageContent = image_url 
+    ? [
+        { type: "text", text: userPromptText },
+        { type: "image_url", image_url: { url: image_url } }
+      ]
+    : userPromptText;
 
   try {
     const groq = getGroq();
     const completion = await groq.chat.completions.create({
-      model: "llama3-70b-8192",
+      model: image_url ? "llama-3.2-90b-vision-preview" : "llama3-70b-8192",
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: userPrompt },
-      ],
+        { role: "user", content: userMessageContent as string },
+      ] as any,
       temperature: 0.1,
       max_tokens: 250,
       response_format: { type: "json_object" },

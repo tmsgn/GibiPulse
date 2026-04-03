@@ -5,7 +5,7 @@ import type { SeverityLevel } from "@/lib/types";
 
 export async function POST(request: NextRequest) {
   try {
-    const { student_id, building, dorm_number, message } = await request.json();
+    const { student_id, building, dorm_number, message, image_url } = await request.json();
 
     if (!student_id || !building || !dorm_number || !message) {
       return NextResponse.json(
@@ -29,11 +29,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Analyze with Groq AI — pass building & dorm as location context
+    // Analyze with Groq AI — pass building & dorm as location context, plus image if provided
     const analysis = await analyzeReport({
       message: message.trim(),
       building: building.trim(),
       dorm_number: dorm_number.trim(),
+      image_url: image_url,
     });
 
     const supabase = await createClient();
@@ -61,12 +62,18 @@ export async function POST(request: NextRequest) {
           ? analysis.severity
           : (existingGroup.severity as SeverityLevel);
 
+      const updateData: any = {
+        report_count: existingGroup.report_count + 1,
+        severity: newSeverity,
+      };
+      
+      if (image_url && !existingGroup.image_url) {
+        updateData.image_url = image_url;
+      }
+
       const { data: updatedGroup } = await supabase
         .from("report_groups")
-        .update({
-          report_count: existingGroup.report_count + 1,
-          severity: newSeverity,
-        })
+        .update(updateData)
         .eq("id", existingGroup.id)
         .select()
         .single();
@@ -86,6 +93,7 @@ export async function POST(request: NextRequest) {
         ai_summary: analysis.ai_summary,
         group_id: groupId,
         duplicate_count: 0,
+        image_url: image_url || null,
       });
 
       return NextResponse.json({
@@ -108,6 +116,7 @@ export async function POST(request: NextRequest) {
         ai_summary: analysis.ai_summary,
         report_count: 1,
         assigned_to: null,
+        image_url: image_url || null,
       })
       .select()
       .single();
@@ -131,6 +140,7 @@ export async function POST(request: NextRequest) {
       ai_summary: analysis.ai_summary,
       group_id: groupId,
       duplicate_count: 0,
+      image_url: image_url || null,
     });
 
     if (reportError) throw new Error(reportError.message);

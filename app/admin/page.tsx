@@ -20,6 +20,7 @@ import { createClient } from "@/lib/supabase/client";
 import { ISSUE_TYPE_CONFIG, SEVERITY_CONFIG, STATUS_CONFIG, timeAgo } from "@/lib/config";
 import type { ReportGroup, IssueType, SeverityLevel } from "@/lib/types";
 import { useRouter } from "next/navigation";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const DEPARTMENTS = [
   "Plumbing Team",
@@ -157,20 +158,21 @@ export default function AdminDashboard() {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background text-foreground">
       {/* Top Nav */}
-      <div className="bg-white border-b border-gray-100 sticky top-0 z-20">
+      <div className="bg-card border-b border-border sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
-              <Zap className="w-4 h-4 text-white" />
+            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+              <Zap className="w-4 h-4 text-primary-foreground" />
             </div>
             <div>
-              <p className="font-bold text-gray-900 text-sm">GibiPulse Admin</p>
-              <p className="text-xs text-gray-400">Bahir Dar University</p>
+              <p className="font-bold text-foreground text-sm">GibiPulse Admin</p>
+              <p className="text-xs text-muted-foreground">Bahir Dar University</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <ThemeToggle />
             <div className="hidden sm:flex items-center gap-1.5 bg-green-50 text-green-700 text-xs px-2.5 py-1.5 rounded-full border border-green-200">
               <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
               Live — auto-refresh 15s
@@ -201,11 +203,11 @@ export default function AdminDashboard() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
         {/* Stat Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <Card className="shadow-none border-gray-100">
+          <Card className="shadow-none border-border">
             <CardContent className="p-4">
-              <p className="text-xs text-gray-400 mb-1">Total Groups</p>
-              <p className="text-2xl font-bold text-gray-900">{statsData.total}</p>
-              <p className="text-xs text-gray-400">{statsData.totalReports} individual reports</p>
+              <p className="text-xs text-muted-foreground mb-1">Total Groups</p>
+              <p className="text-2xl font-bold text-foreground">{statsData.total}</p>
+              <p className="text-xs text-muted-foreground">{statsData.totalReports} individual reports</p>
             </CardContent>
           </Card>
           <Card className="shadow-none border-red-100 bg-red-50">
@@ -215,11 +217,11 @@ export default function AdminDashboard() {
               <p className="text-xs text-red-400">Needs immediate action</p>
             </CardContent>
           </Card>
-          <Card className="shadow-none border-gray-100">
+          <Card className="shadow-none border-border">
             <CardContent className="p-4">
-              <p className="text-xs text-gray-400 mb-1">Open</p>
-              <p className="text-2xl font-bold text-gray-900">{statsData.open}</p>
-              <p className="text-xs text-gray-400">Awaiting assignment</p>
+              <p className="text-xs text-muted-foreground mb-1">Open</p>
+              <p className="text-2xl font-bold text-foreground">{statsData.open}</p>
+              <p className="text-xs text-muted-foreground">Awaiting assignment</p>
             </CardContent>
           </Card>
           <Card className="shadow-none border-green-100 bg-green-50">
@@ -236,10 +238,10 @@ export default function AdminDashboard() {
         {/* Analytics Row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Issue Breakdown */}
-          <Card className="shadow-none border-gray-100">
+          <Card className="shadow-none border-border">
             <CardHeader className="pb-3 pt-4 px-4">
-              <CardTitle className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-blue-500" />
+              <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <BarChart3 className="w-4 h-4 text-primary" />
                 Issue Breakdown (Active)
               </CardTitle>
             </CardHeader>
@@ -265,31 +267,31 @@ export default function AdminDashboard() {
           </Card>
 
           {/* Hot Zones */}
-          <Card className="shadow-none border-gray-100">
+          <Card className="shadow-none border-border">
             <CardHeader className="pb-3 pt-4 px-4">
-              <CardTitle className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+              <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-orange-500" />
                 Hot Zones Today
               </CardTitle>
             </CardHeader>
             <CardContent className="px-4 pb-4 space-y-2">
               {hotZones.length === 0 ? (
-                <p className="text-sm text-gray-400 text-center py-4">No active issues 🎉</p>
+                <p className="text-sm text-muted-foreground text-center py-4">No active issues 🎉</p>
               ) : (
                 hotZones.map(([location, count], i) => (
                   <div
                     key={location}
-                    className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0"
+                    className="flex items-center justify-between py-2 border-b border-border last:border-0"
                   >
                     <div className="flex items-center gap-2">
                       <span className={`text-sm font-bold ${i === 0 ? "text-red-500" : i === 1 ? "text-orange-500" : "text-yellow-500"}`}>
                         #{i + 1}
                       </span>
-                      <p className="text-sm text-gray-700">{location}</p>
+                      <p className="text-sm text-foreground">{location}</p>
                     </div>
                     <div className="flex items-center gap-1">
-                      <Users className="w-3 h-3 text-gray-400" />
-                      <span className="text-sm font-semibold text-gray-700">{count}</span>
+                      <Users className="w-3 h-3 text-muted-foreground" />
+                      <span className="text-sm font-semibold text-foreground">{count}</span>
                     </div>
                   </div>
                 ))
@@ -301,8 +303,8 @@ export default function AdminDashboard() {
         {/* Live Feed */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-              <Clock className="w-4 h-4 text-blue-500" />
+            <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <Clock className="w-4 h-4 text-primary" />
               Live Issue Feed
             </h2>
             <div className="flex items-center gap-2">
@@ -336,12 +338,12 @@ export default function AdminDashboard() {
           </div>
 
           {loading ? (
-            <div className="text-center py-16 text-gray-400">
+            <div className="text-center py-16 text-muted-foreground">
               <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2" />
               <p className="text-sm">Loading reports...</p>
             </div>
           ) : sortedGroups.length === 0 ? (
-            <div className="text-center py-16 text-gray-400">
+            <div className="text-center py-16 text-muted-foreground">
               <CheckCircle2 className="w-8 h-8 mx-auto mb-2 text-green-400" />
               <p className="text-sm">No issues match your filter</p>
             </div>
@@ -356,9 +358,9 @@ export default function AdminDashboard() {
                 return (
                   <div
                     key={group.id}
-                    className={`bg-white rounded-2xl border shadow-none overflow-hidden transition-opacity ${
+                    className={`bg-card rounded-2xl border shadow-none overflow-hidden transition-opacity ${
                       isUpdating ? "opacity-60" : ""
-                    } ${group.severity === "critical" && group.status !== "resolved" ? "border-red-200" : "border-gray-100"}`}
+                    } ${group.severity === "critical" && group.status !== "resolved" ? "border-red-500/50" : "border-border"}`}
                   >
                     {/* Issue Header */}
                     <div className="px-4 py-3 flex items-start justify-between gap-3">
@@ -368,9 +370,9 @@ export default function AdminDashboard() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <p className="text-sm font-semibold text-gray-900">{group.ai_summary}</p>
+                            <p className="text-sm font-semibold text-foreground">{group.ai_summary}</p>
                           </div>
-                          <p className="text-xs text-gray-400 mt-0.5">
+                          <p className="text-xs text-muted-foreground mt-0.5">
                             📍 {group.location} · {timeAgo(group.created_at)}
                           </p>
                         </div>
@@ -381,7 +383,7 @@ export default function AdminDashboard() {
                           <span className={`w-1.5 h-1.5 rounded-full ${severityConfig?.dot}`} />
                           {severityConfig?.label}
                         </span>
-                        <div className="flex items-center gap-1 text-gray-500">
+                        <div className="flex items-center gap-1 text-muted-foreground">
                           <Users className="w-3 h-3" />
                           <span className="text-xs font-semibold">{group.report_count}</span>
                         </div>
@@ -394,7 +396,7 @@ export default function AdminDashboard() {
                         {statusConfig?.label}
                       </Badge>
                       {group.assigned_to && (
-                        <span className="text-xs text-gray-400">
+                        <span className="text-xs text-muted-foreground">
                           → {group.assigned_to}
                         </span>
                       )}
@@ -402,7 +404,7 @@ export default function AdminDashboard() {
 
                     {/* Actions */}
                     {group.status !== "resolved" && (
-                      <div className="px-4 pb-4 flex items-center gap-2 border-t border-gray-50 pt-3">
+                      <div className="px-4 pb-4 flex items-center gap-2 border-t border-border pt-3">
                         <Select
                           value={group.assigned_to ?? ""}
                           onValueChange={(val) =>
@@ -428,7 +430,7 @@ export default function AdminDashboard() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="h-8 text-xs gap-1.5 text-green-700 border-green-200 hover:bg-green-50"
+                          className="h-8 text-xs gap-1.5 text-green-600 dark:text-green-400 border-green-500/20 hover:bg-green-500/10"
                           onClick={() =>
                             handleUpdateGroup(group.id, { status: "resolved" })
                           }
@@ -441,8 +443,8 @@ export default function AdminDashboard() {
                     )}
 
                     {group.status === "resolved" && group.resolved_at && (
-                      <div className="px-4 pb-3 pt-2 border-t border-gray-50">
-                        <p className="text-xs text-green-600 flex items-center gap-1.5">
+                      <div className="px-4 pb-3 pt-2 border-t border-border">
+                        <p className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1.5">
                           <CheckCircle2 className="w-3.5 h-3.5" />
                           Resolved {timeAgo(group.resolved_at)}
                           {group.assigned_to && ` by ${group.assigned_to}`}

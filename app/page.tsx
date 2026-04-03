@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Loader2, Send, CheckCircle2, AlertTriangle, Zap, Sparkles, ChevronRight, Activity } from "lucide-react";
+import { Loader2, Send, CheckCircle2, AlertTriangle, Zap, Sparkles, ChevronRight, Activity, Camera, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { ISSUE_TYPE_CONFIG, SEVERITY_CONFIG, timeAgo } from "@/lib/config";
 import type { AnalysisResult } from "@/lib/types";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { createClient } from "@/lib/supabase/client";
 
 const EXAMPLE_REPORTS = [
   "Abdisa aga wuha tefa again, we can't even wash our hands",
@@ -40,7 +42,10 @@ export default function StudentPage() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<SubmitResult | null>(null);
   const [isFocused, setIsFocused] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [recentIssues, setRecentIssues] = useState<RecentIssue[]>([]);
+  const supabase = createClient();
 
   useEffect(() => {
     // Simulated realistic recent feed
@@ -74,6 +79,31 @@ export default function StudentPage() {
     setResult(null);
 
     try {
+      let imageUrl = null;
+
+      if (imageFile) {
+        toast.info("Uploading evidence...", { duration: 2000 });
+        const fileExt = imageFile.name.split('.').pop();
+        const fileName = `${studentId.trim()}_${Date.now()}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from("report_images")
+          .upload(fileName, imageFile);
+          
+        if (uploadError) {
+          console.error("Upload error:", uploadError);
+          // Wait, if upload fails, we can inform but let's continue or fail?
+          toast.error("Failed to upload image. Submitting without it.");
+        } else {
+          const { data: publicUrlData } = supabase.storage
+            .from("report_images")
+            .getPublicUrl(fileName);
+          imageUrl = publicUrlData.publicUrl;
+        }
+      }
+
+      toast.info("AI analyzing your report...", { duration: 3000 });
+
       const response = await fetch("/api/report", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -82,6 +112,7 @@ export default function StudentPage() {
           building: building.trim(),
           dorm_number: dormNumber.trim(),
           message: message.trim(),
+          image_url: imageUrl,
         }),
       });
 
@@ -218,7 +249,7 @@ export default function StudentPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            
+            <ThemeToggle />
             <button 
               onClick={() => window.location.href = "/feed"}
               className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-card border border-border shadow-sm hover:bg-accent transition-all group"
@@ -322,6 +353,52 @@ export default function StudentPage() {
                   maxLength={500}
                 />
               </div>
+            </div>
+
+            <div className="space-y-3">
+              <label className="block text-xs font-bold text-muted-foreground uppercase tracking-widest">
+                Attach Evidence (Optional)
+              </label>
+              
+              {!imagePreview ? (
+                <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-border rounded-xl cursor-pointer bg-muted/20 hover:bg-muted/50 transition-colors">
+                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                    <Camera className="w-6 h-6 text-muted-foreground mb-2" />
+                    <p className="text-xs text-muted-foreground"><span className="font-semibold text-primary">Click to upload</span> or drag and drop</p>
+                  </div>
+                  <input 
+                    type="file" 
+                    className="hidden" 
+                    accept="image/*"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        setImageFile(e.target.files[0]);
+                        setImagePreview(URL.createObjectURL(e.target.files[0]));
+                      }
+                    }} 
+                  />
+                </label>
+              ) : (
+                <div className="relative w-full overflow-hidden rounded-xl border border-border group">
+                  <div className="absolute top-2 right-2 z-10 flex gap-2">
+                    <button 
+                      type="button"
+                      onClick={() => { setImageFile(null); setImagePreview(null); }}
+                      className="p-1.5 bg-black/50 hover:bg-black text-white rounded-full transition-colors backdrop-blur-sm"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={imagePreview} alt="Evidence" className="w-full h-40 object-cover" />
+                  <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/60 to-transparent p-3 pointer-events-none">
+                    <div className="flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+                      <p className="text-xs font-medium text-white opacity-90">AI Vision will analyze this photo</p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             <Button
