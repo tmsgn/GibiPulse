@@ -15,6 +15,8 @@ export const metadata: Metadata = {
     "AI-powered campus issue reporting system for Bahir Dar University students.",
 };
 
+import { ThemeProvider } from "@/components/theme-provider";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -25,8 +27,15 @@ export default function RootLayout({
       <body
         className={`${poppins.variable} font-sans antialiased min-h-screen bg-background`}
       >
-        {children}
-        <Toaster richColors position="top-center" />
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          {children}
+          <Toaster richColors position="top-center" />
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -16,6 +16,7 @@ export interface Report {
   created_at: string;
   group_id: string | null;
   duplicate_count: number;
+  image_url?: string | null;
 }
 
 export interface ReportGroup {
@@ -29,6 +30,7 @@ export interface ReportGroup {
   assigned_to: string | null;
   created_at: string;
   resolved_at: string | null;
+  image_url?: string | null;
 }
 
 export interface AnalysisResult {
