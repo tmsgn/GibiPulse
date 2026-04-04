@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import {
-  Zap, LogOut, RefreshCw, CheckCircle2, Clock,
+  LogOut, RefreshCw, CheckCircle2, Clock,
   AlertTriangle, Users, BarChart3, Filter, Sparkles, Image as ImageIcon, X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -57,7 +57,6 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchGroups();
-    // Poll every 15 seconds for live updates
     const interval = setInterval(fetchGroups, 15000);
     return () => clearInterval(interval);
   }, [fetchGroups]);
@@ -87,7 +86,7 @@ export default function AdminDashboard() {
       }
 
       await fetchGroups();
-      
+
       if (updates.status === "resolved") {
         toast.success("Issue marked as resolved ✓");
       } else if (updates.assigned_to) {
@@ -106,7 +105,6 @@ export default function AdminDashboard() {
     router.push("/admin/login");
   };
 
-  // Stats
   const statsData = {
     total: groups.length,
     critical: groups.filter((g) => g.severity === "critical" && g.status !== "resolved").length,
@@ -115,7 +113,6 @@ export default function AdminDashboard() {
     totalReports: groups.reduce((acc, g) => acc + g.report_count, 0),
   };
 
-  // Issue type breakdown
   const typeCounts = groups
     .filter((g) => g.status !== "resolved")
     .reduce(
@@ -128,7 +125,6 @@ export default function AdminDashboard() {
 
   const maxTypeCount = Math.max(...Object.values(typeCounts), 1);
 
-  // Hot zones
   const locationCounts = groups
     .filter((g) => g.status !== "resolved")
     .reduce(
@@ -143,14 +139,12 @@ export default function AdminDashboard() {
     .sort(([, a], [, b]) => b - a)
     .slice(0, 3);
 
-  // Filtered groups
   const filteredGroups = groups.filter((g) => {
     const typeMatch = filterType === "all" || g.issue_type === filterType;
     const statusMatch = filterStatus === "all" || g.status === filterStatus;
     return typeMatch && statusMatch;
   });
 
-  // Sort by severity then date
   const severityRank: Record<string, number> = { critical: 4, high: 3, medium: 2, low: 1 };
   const sortedGroups = [...filteredGroups].sort((a, b) => {
     const sevDiff = (severityRank[b.severity] || 0) - (severityRank[a.severity] || 0);
@@ -160,30 +154,35 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      {/* Top Nav */}
-      <div className="bg-card border-b border-border sticky top-0 z-20">
+      {/* Top announcements bar */}
+      <div className="bg-[#003d6b] text-white text-xs py-1.5 px-4 text-center">
+        <span className="opacity-80">Bahir Dar University — GibiPulse Admin Dashboard</span>
+      </div>
+
+      {/* Main Header */}
+      <header className="bg-[#005189] bdu-header-stripe shadow-md sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-lg border border-border/50 overflow-hidden">
+            <div className="w-10 h-10 rounded bg-white flex items-center justify-center overflow-hidden shadow-sm">
               <img src="/bdu-logo.png" alt="BDU Logo" className="w-8 h-8 object-contain" />
             </div>
             <div>
-              <p className="font-bold text-sm tracking-tight text-transparent bg-clip-text bg-linear-to-r from-foreground to-foreground/70">GibiPulse Admin</p>
-              <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest">Bahir Dar University</p>
+              <p className="font-bold text-white text-sm leading-none">GibiPulse Admin</p>
+              <p className="text-[11px] text-blue-200 mt-0.5 tracking-wide">Bahir Dar University — Operations</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            <div className="hidden sm:flex items-center gap-1.5 bg-green-50 text-green-700 text-xs px-2.5 py-1.5 rounded-full border border-green-200">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-              Live — auto-refresh 15s
+            <div className="hidden sm:flex items-center gap-1.5 bg-green-500/20 text-green-300 text-xs px-2.5 py-1.5 rounded border border-green-500/30">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+              Live — 15s
             </div>
             <Button
               variant="outline"
               size="sm"
               onClick={handleRefresh}
               disabled={refreshing}
-              className="gap-1.5 h-8 text-xs"
+              className="gap-1.5 h-8 text-xs text-white border-white/30 bg-white/10 hover:bg-white/20"
             >
               <RefreshCw className={`w-3 h-3 ${refreshing ? "animate-spin" : ""}`} />
               Refresh
@@ -192,75 +191,68 @@ export default function AdminDashboard() {
               variant="ghost"
               size="sm"
               onClick={handleLogout}
-              className="gap-1.5 h-8 text-xs text-gray-500"
+              className="gap-1.5 h-8 text-xs text-white/70 hover:text-white hover:bg-white/10"
             >
               <LogOut className="w-3 h-3" />
               Logout
             </Button>
           </div>
         </div>
-      </div>
+      </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+
         {/* Stat Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <Card className="shadow-none border-border">
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground mb-1">Total Groups</p>
-              <p className="text-2xl font-bold text-foreground">{statsData.total}</p>
-              <p className="text-xs text-muted-foreground">{statsData.totalReports} individual reports</p>
-            </CardContent>
-          </Card>
-          <Card className="shadow-none border-red-100 bg-red-50">
-            <CardContent className="p-4">
-              <p className="text-xs text-red-400 mb-1">Critical</p>
-              <p className="text-2xl font-bold text-red-600">{statsData.critical}</p>
-              <p className="text-xs text-red-400">Needs immediate action</p>
-            </CardContent>
-          </Card>
-          <Card className="shadow-none border-border">
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground mb-1">Open</p>
-              <p className="text-2xl font-bold text-foreground">{statsData.open}</p>
-              <p className="text-xs text-muted-foreground">Awaiting assignment</p>
-            </CardContent>
-          </Card>
-          <Card className="shadow-none border-green-100 bg-green-50">
-            <CardContent className="p-4">
-              <p className="text-xs text-green-400 mb-1">Resolved</p>
-              <p className="text-2xl font-bold text-green-600">{statsData.resolved}</p>
-              <p className="text-xs text-green-400">
-                {statsData.total > 0 ? Math.round((statsData.resolved / statsData.total) * 100) : 0}% rate
-              </p>
-            </CardContent>
-          </Card>
+          <div className="bg-card border border-border rounded p-4">
+            <p className="text-xs text-muted-foreground mb-1">Total Groups</p>
+            <p className="text-2xl font-bold text-foreground">{statsData.total}</p>
+            <p className="text-xs text-muted-foreground">{statsData.totalReports} individual reports</p>
+          </div>
+          <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded p-4">
+            <p className="text-xs text-red-500 mb-1">Critical</p>
+            <p className="text-2xl font-bold text-red-600">{statsData.critical}</p>
+            <p className="text-xs text-red-400">Needs immediate action</p>
+          </div>
+          <div className="bg-card border border-border rounded p-4">
+            <p className="text-xs text-muted-foreground mb-1">Open</p>
+            <p className="text-2xl font-bold text-foreground">{statsData.open}</p>
+            <p className="text-xs text-muted-foreground">Awaiting assignment</p>
+          </div>
+          <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded p-4">
+            <p className="text-xs text-green-600 mb-1">Resolved</p>
+            <p className="text-2xl font-bold text-green-700">{statsData.resolved}</p>
+            <p className="text-xs text-green-500">
+              {statsData.total > 0 ? Math.round((statsData.resolved / statsData.total) * 100) : 0}% resolution rate
+            </p>
+          </div>
         </div>
 
         {/* Analytics Row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Issue Breakdown */}
           <Card className="shadow-none border-border">
-            <CardHeader className="pb-3 pt-4 px-4">
+            <CardHeader className="pb-2 pt-4 px-4 border-b border-border">
               <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-primary" />
+                <BarChart3 className="w-4 h-4 text-[#005189]" />
                 Issue Breakdown (Active)
               </CardTitle>
             </CardHeader>
-            <CardContent className="px-4 pb-4 space-y-2.5">
+            <CardContent className="px-4 pb-4 pt-3 space-y-2.5">
               {Object.entries(ISSUE_TYPE_CONFIG).map(([type, config]) => {
                 const count = typeCounts[type] || 0;
                 const pct = Math.round((count / maxTypeCount) * 100);
                 return (
                   <div key={type} className="flex items-center gap-2">
                     <span className="text-sm w-4">{config.icon}</span>
-                    <p className="text-xs text-gray-600 w-20">{config.label}</p>
-                    <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <p className="text-xs text-muted-foreground w-20">{config.label}</p>
+                    <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-blue-500 rounded-full transition-all duration-500"
+                        className="h-full bg-[#005189] rounded-full transition-all duration-500"
                         style={{ width: `${pct}%` }}
                       />
                     </div>
-                    <p className="text-xs font-semibold text-gray-700 w-8 text-right">{count}</p>
+                    <p className="text-xs font-semibold text-foreground w-6 text-right">{count}</p>
                   </div>
                 );
               })}
@@ -269,13 +261,13 @@ export default function AdminDashboard() {
 
           {/* Hot Zones */}
           <Card className="shadow-none border-border">
-            <CardHeader className="pb-3 pt-4 px-4">
+            <CardHeader className="pb-2 pt-4 px-4 border-b border-border">
               <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-orange-500" />
                 Hot Zones Today
               </CardTitle>
             </CardHeader>
-            <CardContent className="px-4 pb-4 space-y-2">
+            <CardContent className="px-4 pb-4 pt-3 space-y-2">
               {hotZones.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-4">No active issues 🎉</p>
               ) : (
@@ -305,7 +297,7 @@ export default function AdminDashboard() {
         <div>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
-              <Clock className="w-4 h-4 text-primary" />
+              <Clock className="w-4 h-4 text-[#005189]" />
               Live Issue Feed
             </h2>
             <div className="flex items-center gap-2">
@@ -359,26 +351,26 @@ export default function AdminDashboard() {
                 return (
                   <div
                     key={group.id}
-                    className={`bg-card rounded-xl border shadow-sm hover:shadow-md overflow-hidden transition-all duration-300 ${
-                      isUpdating ? "opacity-60 scale-[0.99]" : ""
-                    } ${group.severity === "critical" && group.status !== "resolved" ? "border-red-500/50 shadow-red-500/5" : "border-border"}`}
+                    className={`bg-card rounded border overflow-hidden transition-all duration-200 ${
+                      isUpdating ? "opacity-60" : ""
+                    } ${group.severity === "critical" && group.status !== "resolved" ? "border-red-300 dark:border-red-700" : "border-border"}`}
                   >
                     {/* Issue Header */}
                     <div className="px-4 py-3 flex items-start justify-between gap-3">
                       <div className="flex items-start gap-3 flex-1 min-w-0">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-xl shadow-inner ${issueConfig?.bg}`}>
+                        <div className={`w-9 h-9 rounded flex items-center justify-center flex-shrink-0 text-lg ${issueConfig?.bg}`}>
                           {issueConfig?.icon}
                         </div>
                         <div className="flex-1 min-w-0 pt-0.5">
                           <div className="flex items-center gap-2 flex-wrap mb-1">
-                            <span className="inline-flex items-center gap-1 text-[10px] uppercase font-bold text-blue-500 bg-blue-500/10 px-1.5 py-0.5 rounded-sm">
+                            <span className="inline-flex items-center gap-1 text-[10px] uppercase font-semibold text-[#005189] bg-blue-50 dark:bg-blue-950/30 dark:text-blue-400 px-1.5 py-0.5 rounded">
                               <Sparkles className="w-3 h-3" />
-                              {group.image_url ? "Vision AI Verified" : "AI Filtered"}
+                              {group.image_url ? "Evidence Attached" : "AI Analyzed"}
                             </span>
                           </div>
-                          <p className="text-[15px] leading-tight font-semibold text-foreground">{group.ai_summary}</p>
-                          <p className="text-xs font-medium text-muted-foreground mt-1.5 flex items-center gap-1.5 flex-wrap">
-                            <span className="text-foreground bg-muted px-1.5 py-0.5 rounded-md">📍 {group.location}</span>
+                          <p className="text-sm font-semibold text-foreground leading-snug">{group.ai_summary}</p>
+                          <p className="text-xs text-muted-foreground mt-1.5 flex items-center gap-1.5 flex-wrap">
+                            <span className="text-foreground bg-muted px-1.5 py-0.5 rounded text-[11px]">📍 {group.location}</span>
                             <span>•</span>
                             <span>{timeAgo(group.created_at)}</span>
                           </p>
@@ -387,42 +379,40 @@ export default function AdminDashboard() {
 
                       <div className="flex flex-col items-end gap-2 flex-shrink-0">
                         {group.image_url && (
-                          <div 
-                            className="relative w-12 h-12 rounded-lg overflow-hidden border border-border group-hover:border-primary/50 transition-colors cursor-zoom-in"
+                          <div
+                            className="relative w-12 h-12 rounded overflow-hidden border border-border cursor-zoom-in"
                             onClick={() => setSelectedImage(group.image_url!)}
                           >
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={group.image_url} alt="Evidence" className="w-full h-full object-cover" />
-                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
                               <ImageIcon className="w-4 h-4 text-white" />
                             </div>
                           </div>
                         )}
-                        <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-wider ${severityConfig?.bg}`}>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-wider ${severityConfig?.bg}`}>
                           {severityConfig?.label}
                         </span>
-                        <div className="flex items-center gap-1 text-muted-foreground bg-muted px-2 py-0.5 rounded-md text-xs font-medium border border-border shadow-sm">
-                          <Users className="w-3.5 h-3.5 text-primary" />
+                        <div className="flex items-center gap-1 text-muted-foreground bg-muted px-1.5 py-0.5 rounded text-xs border border-border">
+                          <Users className="w-3 h-3" />
                           {group.report_count} match{group.report_count !== 1 ? 'es' : ''}
                         </div>
                       </div>
                     </div>
 
-                    {/* Status + Assigned */}
-                    <div className="px-4 pb-3 flex items-center gap-2 flex-wrap bg-muted/20 pt-2 border-t border-border mt-1">
-                      <Badge className={`text-[11px] uppercase tracking-wider font-bold shadow-sm ${statusConfig?.bg}`}>
+                    {/* Status row */}
+                    <div className="px-4 py-2 flex items-center gap-2 flex-wrap bg-muted/20 border-t border-border">
+                      <Badge className={`text-[10px] uppercase tracking-wider font-bold ${statusConfig?.bg} border-0`}>
                         ● {statusConfig?.label}
                       </Badge>
                       {group.assigned_to && (
-                        <span className="text-xs text-muted-foreground">
-                          → {group.assigned_to}
-                        </span>
+                        <span className="text-xs text-muted-foreground">→ {group.assigned_to}</span>
                       )}
                     </div>
 
-                    {/* Actions */}
+                    {/* Actions row */}
                     {group.status !== "resolved" && (
-                      <div className="px-4 pb-3 flex items-center gap-2 bg-muted/20">
+                      <div className="px-4 pb-3 pt-2 flex items-center gap-2 bg-muted/20">
                         <Select
                           value={group.assigned_to ?? ""}
                           onValueChange={(val) =>
@@ -448,7 +438,7 @@ export default function AdminDashboard() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="h-8 text-xs gap-1.5 text-green-600 dark:text-green-400 border-green-500/20 hover:bg-green-500/10"
+                          className="h-8 text-xs gap-1.5 text-green-700 dark:text-green-400 border-green-300 dark:border-green-700 hover:bg-green-50 dark:hover:bg-green-950/30"
                           onClick={() =>
                             handleUpdateGroup(group.id, { status: "resolved" })
                           }
@@ -460,8 +450,9 @@ export default function AdminDashboard() {
                       </div>
                     )}
 
+                    {/* Resolved footer */}
                     {group.status === "resolved" && group.resolved_at && (
-                      <div className="px-4 pb-3 pt-2 border-t border-border">
+                      <div className="px-4 pb-3 pt-2 border-t border-border bg-green-50/50 dark:bg-green-950/10">
                         <p className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1.5">
                           <CheckCircle2 className="w-3.5 h-3.5" />
                           Resolved {timeAgo(group.resolved_at)}
@@ -477,17 +468,25 @@ export default function AdminDashboard() {
         </div>
       </div>
 
+      {/* Footer */}
+      <footer className="border-t border-border bg-card mt-8">
+        <div className="max-w-7xl mx-auto px-5 py-4 flex items-center justify-between text-xs text-muted-foreground">
+          <span>© {new Date().getFullYear()} Bahir Dar University — GibiPulse Admin</span>
+          <span>Auto-refreshes every 15 seconds</span>
+        </div>
+      </footer>
+
       {/* Fullscreen Image Modal */}
       {selectedImage && (
-        <div 
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 cursor-zoom-out"
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 cursor-zoom-out"
           onClick={() => setSelectedImage(null)}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img 
-            src={selectedImage} 
-            alt="Evidence full view" 
-            className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
+          <img
+            src={selectedImage}
+            alt="Evidence full view"
+            className="max-w-[90vw] max-h-[90vh] object-contain rounded shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           />
           <Button

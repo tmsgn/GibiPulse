@@ -3,8 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import {
-  Zap, RefreshCw, CheckCircle2, Clock,
-  AlertTriangle, Users, BarChart3, Filter
+  RefreshCw, CheckCircle2, Clock,
+  AlertTriangle, Users, BarChart3, Filter, ArrowLeft
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -42,7 +42,6 @@ export default function FeedPage() {
 
   useEffect(() => {
     fetchGroups();
-    // Poll every 15 seconds for live updates
     const interval = setInterval(fetchGroups, 15000);
     return () => clearInterval(interval);
   }, [fetchGroups]);
@@ -53,7 +52,6 @@ export default function FeedPage() {
     toast.success("Feed refreshed");
   };
 
-  // Stats
   const statsData = {
     total: groups.length,
     critical: groups.filter((g) => g.severity === "critical" && g.status !== "resolved").length,
@@ -62,7 +60,6 @@ export default function FeedPage() {
     totalReports: groups.reduce((acc, g) => acc + g.report_count, 0),
   };
 
-  // Issue type breakdown
   const typeCounts = groups
     .filter((g) => g.status !== "resolved")
     .reduce(
@@ -75,7 +72,6 @@ export default function FeedPage() {
 
   const maxTypeCount = Math.max(...Object.values(typeCounts), 1);
 
-  // Hot zones
   const locationCounts = groups
     .filter((g) => g.status !== "resolved")
     .reduce(
@@ -90,14 +86,12 @@ export default function FeedPage() {
     .sort(([, a], [, b]) => b - a)
     .slice(0, 3);
 
-  // Filtered groups
   const filteredGroups = groups.filter((g) => {
     const typeMatch = filterType === "all" || g.issue_type === filterType;
     const statusMatch = filterStatus === "all" || g.status === filterStatus;
     return typeMatch && statusMatch;
   });
 
-  // Sort by severity then date
   const severityRank: Record<string, number> = { critical: 4, high: 3, medium: 2, low: 1 };
   const sortedGroups = [...filteredGroups].sort((a, b) => {
     const sevDiff = (severityRank[b.severity] || 0) - (severityRank[a.severity] || 0);
@@ -107,50 +101,79 @@ export default function FeedPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      {/* Top Nav */}
-      <div className="bg-card border-b border-border sticky top-0 z-20">
+      {/* Top bar */}
+      <div className="bg-[#003d6b] text-white text-xs py-1.5 px-4 text-center">
+        <span className="opacity-80">Bahir Dar University — Campus Infrastructure Live Feed</span>
+      </div>
+
+      {/* Header */}
+      <header className="bg-[#005189] bdu-header-stripe shadow-md sticky top-0 z-20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-md border border-border/50 overflow-hidden">
+            <div className="w-10 h-10 rounded bg-white flex items-center justify-center overflow-hidden shadow-sm">
               <img src="/bdu-logo.png" alt="BDU Logo" className="w-8 h-8 object-contain" />
             </div>
             <div>
-              <p className="font-bold text-foreground text-sm">GibiPulse</p>
-              <p className="text-xs text-muted-foreground">Public Live Feed</p>
+              <p className="font-bold text-white text-sm leading-none">GibiPulse</p>
+              <p className="text-[11px] text-blue-200 mt-0.5">Public Live Feed</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            <div className="hidden sm:flex items-center gap-1.5 bg-green-50 text-green-700 text-xs px-2.5 py-1.5 rounded-full border border-green-200">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-              Live Feed
+            <div className="hidden sm:flex items-center gap-1.5 bg-green-500/20 text-green-300 text-xs px-2.5 py-1.5 rounded border border-green-500/30">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+              Live — 15s refresh
             </div>
             <Button
               variant="outline"
               size="sm"
               onClick={handleRefresh}
               disabled={refreshing}
-              className="gap-1.5 h-8 text-xs"
+              className="gap-1.5 h-8 text-xs text-white border-white/30 bg-white/10 hover:bg-white/20"
             >
               <RefreshCw className={`w-3 h-3 ${refreshing ? "animate-spin" : ""}`} />
               Refresh
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.location.href = "/"}
+              className="gap-1.5 h-8 text-xs text-white border-white/30 bg-white/10 hover:bg-white/20"
+            >
+              <ArrowLeft className="w-3 h-3" />
+              Report
+            </Button>
           </div>
         </div>
-      </div>
+      </header>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-        {/* Analytics Row */}
+        {/* Stats row */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[
+            { label: "Total Groups", value: statsData.total, sub: `${statsData.totalReports} reports` },
+            { label: "Critical", value: statsData.critical, sub: "Active", danger: true },
+            { label: "Open", value: statsData.open, sub: "Pending" },
+            { label: "Resolved", value: statsData.resolved, sub: `${statsData.total > 0 ? Math.round((statsData.resolved / statsData.total) * 100) : 0}% rate`, success: true },
+          ].map((stat) => (
+            <div key={stat.label} className={`bg-card border rounded p-4 ${stat.danger ? 'border-red-200 bg-red-50 dark:bg-red-950/20 dark:border-red-800' : stat.success ? 'border-green-200 bg-green-50 dark:bg-green-950/20 dark:border-green-800' : 'border-border'}`}>
+              <p className={`text-xs mb-1 ${stat.danger ? 'text-red-500' : stat.success ? 'text-green-600' : 'text-muted-foreground'}`}>{stat.label}</p>
+              <p className={`text-2xl font-bold ${stat.danger ? 'text-red-600' : stat.success ? 'text-green-700' : 'text-foreground'}`}>{stat.value}</p>
+              <p className={`text-xs ${stat.danger ? 'text-red-400' : stat.success ? 'text-green-500' : 'text-muted-foreground'}`}>{stat.sub}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Analytics row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Issue Breakdown */}
-          <Card className="shadow-none border-border bg-card">
-            <CardHeader className="pb-3 pt-4 px-4">
+          <Card className="shadow-none border-border">
+            <CardHeader className="pb-2 pt-4 px-4 border-b border-border">
               <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-primary" />
-                Trending Issues Currently
+                <BarChart3 className="w-4 h-4 text-[#005189]" />
+                Issue Breakdown (Active)
               </CardTitle>
             </CardHeader>
-            <CardContent className="px-4 pb-4 space-y-2.5">
+            <CardContent className="px-4 pb-4 pt-3 space-y-2.5">
               {Object.entries(ISSUE_TYPE_CONFIG).map(([type, config]) => {
                 const count = typeCounts[type] || 0;
                 const pct = Math.round((count / maxTypeCount) * 100);
@@ -160,43 +183,39 @@ export default function FeedPage() {
                     <p className="text-xs text-muted-foreground w-20">{config.label}</p>
                     <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-primary rounded-full transition-all duration-500"
+                        className="h-full bg-[#005189] rounded-full transition-all duration-500"
                         style={{ width: `${pct}%` }}
                       />
                     </div>
-                    <p className="text-xs font-semibold text-foreground w-8 text-right">{count}</p>
+                    <p className="text-xs font-semibold text-foreground w-6 text-right">{count}</p>
                   </div>
                 );
               })}
             </CardContent>
           </Card>
 
-          {/* Hot Zones */}
-          <Card className="shadow-none border-border bg-card">
-            <CardHeader className="pb-3 pt-4 px-4 border-b border-border">
+          <Card className="shadow-none border-border">
+            <CardHeader className="pb-2 pt-4 px-4 border-b border-border">
               <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-primary" />
-                Active Hot Zones
+                <AlertTriangle className="w-4 h-4 text-orange-500" />
+                Hot Zones
               </CardTitle>
             </CardHeader>
-            <CardContent className="px-4 pb-4 space-y-2">
+            <CardContent className="px-4 pb-4 pt-3 space-y-2">
               {hotZones.length === 0 ? (
-                <p className="text-sm text-gray-400 text-center py-4">No active issues 🎉</p>
+                <p className="text-sm text-muted-foreground text-center py-4">No active issues 🎉</p>
               ) : (
                 hotZones.map(([location, count], i) => (
-                  <div
-                    key={location}
-                    className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0"
-                  >
+                  <div key={location} className="flex items-center justify-between py-2 border-b border-border last:border-0">
                     <div className="flex items-center gap-2">
                       <span className={`text-sm font-bold ${i === 0 ? "text-red-500" : i === 1 ? "text-orange-500" : "text-yellow-500"}`}>
                         #{i + 1}
                       </span>
-                      <p className="text-sm text-gray-700">{location}</p>
+                      <p className="text-sm text-foreground">{location}</p>
                     </div>
                     <div className="flex items-center gap-1">
-                      <Users className="w-3 h-3 text-gray-400" />
-                      <span className="text-sm font-semibold text-gray-700">{count}</span>
+                      <Users className="w-3 h-3 text-muted-foreground" />
+                      <span className="text-sm font-semibold text-foreground">{count}</span>
                     </div>
                   </div>
                 ))
@@ -209,8 +228,8 @@ export default function FeedPage() {
         <div>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
             <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
-              <Clock className="w-4 h-4 text-primary" />
-              Live Reports Source
+              <Clock className="w-4 h-4 text-[#005189]" />
+              Live Issue Reports
             </h2>
             <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
               <Select value={filterType} onValueChange={setFilterType}>
@@ -262,57 +281,50 @@ export default function FeedPage() {
                 return (
                   <div
                     key={group.id}
-                    className={`bg-card rounded-xl border shadow-sm overflow-hidden transition-all hover:shadow-md ${
-                      group.severity === "critical" && group.status !== "resolved" ? "border-red-500/50" : "border-border"
+                    className={`bg-card rounded border overflow-hidden transition-shadow hover:shadow-sm ${
+                      group.severity === "critical" && group.status !== "resolved" ? "border-red-300 dark:border-red-700" : "border-border"
                     }`}
                   >
-                    {/* Issue Header */}
                     <div className="px-4 py-3 flex items-start justify-between gap-3">
                       <div className="flex items-start gap-3 flex-1 min-w-0">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-xl shadow-inner ${issueConfig?.bg}`}>
+                        <div className={`w-9 h-9 rounded flex items-center justify-center flex-shrink-0 text-lg ${issueConfig?.bg}`}>
                           {issueConfig?.icon}
                         </div>
                         <div className="flex-1 min-w-0 pt-0.5">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <p className="text-[15px] font-semibold text-foreground">{group.ai_summary}</p>
-                          </div>
-                          <p className="text-xs font-medium text-muted-foreground mt-1 flex items-center gap-1.5 flex-wrap">
-                            <span className="text-foreground bg-muted px-1.5 py-0.5 rounded-md">📍 {group.location}</span>
+                          <p className="text-sm font-semibold text-foreground leading-snug">{group.ai_summary}</p>
+                          <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5 flex-wrap">
+                            <span className="text-foreground bg-muted px-1.5 py-0.5 rounded text-[11px]">📍 {group.location}</span>
                             <span>•</span>
                             <span>{timeAgo(group.created_at)}</span>
                           </p>
                         </div>
                       </div>
-
-                      <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                        <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-wider ${severityConfig?.bg}`}>
+                      <div className="flex flex-col items-end gap-1.5 shrink-0">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-wider ${severityConfig?.bg}`}>
                           {severityConfig?.label}
                         </span>
-                        <div className="flex items-center gap-1 text-muted-foreground bg-muted px-2 py-0.5 rounded-md text-xs font-medium border border-border shadow-sm">
-                          <Users className="w-3.5 h-3.5 text-primary" />
-                          {group.report_count} matching report{group.report_count !== 1 ? 's' : ''}
+                        <div className="flex items-center gap-1 text-muted-foreground bg-muted px-1.5 py-0.5 rounded text-xs border border-border">
+                          <Users className="w-3 h-3" />
+                          {group.report_count}
                         </div>
                       </div>
                     </div>
 
-                    {/* Status Footer */}
                     <div className="px-4 pb-3 pt-2 bg-muted/30 border-t border-border flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <Badge className={`text-[11px] uppercase tracking-wider ${statusConfig?.bg} border-0 font-bold shadow-sm`}>
+                        <Badge className={`text-[10px] uppercase tracking-wider ${statusConfig?.bg} border-0 font-bold`}>
                           {statusConfig?.label}
                         </Badge>
                         {group.assigned_to && (
-                          <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-                            Team Assigned: {group.assigned_to}
+                          <span className="text-xs text-muted-foreground">
+                            Team: {group.assigned_to}
                           </span>
                         )}
                       </div>
-                      
                       {group.status === "resolved" && group.resolved_at && (
-                        <p className="text-[11px] font-bold text-green-600 dark:text-green-400 flex items-center gap-1 bg-green-500/10 px-2 py-0.5 rounded-md border border-green-500/20">
+                        <p className="text-[11px] font-bold text-green-600 dark:text-green-400 flex items-center gap-1">
                           <CheckCircle2 className="w-3.5 h-3.5" />
-                          RESOLVED {timeAgo(group.resolved_at).toUpperCase()}
+                          Resolved {timeAgo(group.resolved_at)}
                         </p>
                       )}
                     </div>
@@ -323,6 +335,14 @@ export default function FeedPage() {
           )}
         </div>
       </div>
+
+      {/* Footer */}
+      <footer className="border-t border-border bg-card mt-8">
+        <div className="max-w-4xl mx-auto px-5 py-4 flex items-center justify-between text-xs text-muted-foreground">
+          <span>© {new Date().getFullYear()} Bahir Dar University — GibiPulse</span>
+          <span>Auto-refreshes every 15 seconds</span>
+        </div>
+      </footer>
     </div>
   );
 }
