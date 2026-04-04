@@ -48,31 +48,23 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* BDU Color Palette:
-   Primary Blue: #005189
-   Gold/Yellow:  #FFCC00
-   Dark Text:    #1a2332
-   Light BG:     #f5f7fa
-   Border:       #dce3ea
-*/
-
 :root {
-  --background: oklch(0.973 0.005 248);       /* #f5f7fa light blue-gray */
-  --foreground: oklch(0.18 0.03 248);          /* #1a2332 dark navy */
-  --card: oklch(1 0 0);                        /* white */
+  --background: oklch(0.973 0.005 248);
+  --foreground: oklch(0.18 0.03 248);
+  --card: oklch(1 0 0);
   --card-foreground: oklch(0.18 0.03 248);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.18 0.03 248);
-  --primary: oklch(0.38 0.12 248);             /* #005189 BDU blue */
+  --primary: oklch(0.38 0.12 248);
   --primary-foreground: oklch(1 0 0);
   --secondary: oklch(0.94 0.01 248);
   --secondary-foreground: oklch(0.38 0.12 248);
   --muted: oklch(0.94 0.008 248);
   --muted-foreground: oklch(0.5 0.03 248);
-  --accent: oklch(0.85 0.18 90);              /* #FFCC00 BDU gold */
+  --accent: oklch(0.85 0.18 90);
   --accent-foreground: oklch(0.18 0.03 248);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.88 0.01 248);             /* #dce3ea */
+  --border: oklch(0.88 0.01 248);
   --input: oklch(0.92 0.008 248);
   --ring: oklch(0.38 0.12 248);
   --chart-1: oklch(0.38 0.12 248);
@@ -137,18 +129,6 @@
   }
 }
 
-/* BDU Header stripe — gold underline accent */
 .bdu-header-stripe {
   border-bottom: 3px solid #FFCC00;
-}
-
-/* BDU Blue button */
-.bdu-btn-primary {
-  background-color: #005189;
-  color: white;
-  border: none;
-  transition: background-color 0.2s;
-}
-.bdu-btn-primary:hover {
-  background-color: #003d6b;
 }

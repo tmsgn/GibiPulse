@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Loader2, Send, CheckCircle2, AlertTriangle, Zap, Sparkles, ChevronRight, Activity, Camera, X } from "lucide-react";
+import { Loader2, Send, CheckCircle2, AlertTriangle, ChevronRight, Activity, Camera, X, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -57,27 +57,32 @@ export default function StudentPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!studentId.trim()) {
-      toast.error("Please enter your student ID");
-      return;
-    }
-    if (!building.trim()) {
-      toast.error("Please enter your building name");
-      return;
-    }
-    if (!dormNumber.trim()) {
-      toast.error("Please enter your dorm number");
-      return;
-    }
-    if (!message.trim()) {
-      toast.error("Please describe the issue");
-      return;
-    }
+    if (!studentId.trim()) { toast.error("Please enter your student ID"); return; }
+    if (!building.trim()) { toast.error("Please enter your building name"); return; }
+    if (!dormNumber.trim()) { toast.error("Please enter your dorm number"); return; }
+    if (!message.trim()) { toast.error("Please describe the issue"); return; }
 
     setLoading(true);
     setResult(null);
 
     try {
+      let imageUrl = null;
+
+      if (imageFile) {
+        toast.info("Uploading evidence...", { duration: 2000 });
+        const fileExt = imageFile.name.split('.').pop();
+        const fileName = `${studentId.trim()}_${Date.now()}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage.from("report_images").upload(fileName, imageFile);
+        if (uploadError) {
+          toast.error("Failed to upload image. Submitting without it.");
+        } else {
+          const { data: publicUrlData } = supabase.storage.from("report_images").getPublicUrl(fileName);
+          imageUrl = publicUrlData.publicUrl;
+        }
+      }
+
+      toast.info("Analyzing your report...", { duration: 3000 });
+
       const response = await fetch("/api/report", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -85,16 +90,13 @@ export default function StudentPage() {
           student_id: studentId.trim(),
           building: building.trim(),
           dorm_number: dormNumber.trim(),
-          message: message.trim()
+          message: message.trim(),
+          image_url: imageUrl,
         }),
       });
 
       const data = await response.json();
-
-      if (!response.ok) {
-        toast.error(data.error ?? "Failed to submit report");
-        return;
-      }
+      if (!response.ok) { toast.error(data.error ?? "Failed to submit report"); return; }
 
       setResult(data);
       toast.success("Report submitted successfully!");
@@ -109,351 +111,335 @@ export default function StudentPage() {
   const handleExampleClick = (example: string) => {
     setMessage(example);
     setIsFocused(true);
-    window.scrollTo({ top: 100, behavior: 'smooth' });
+    window.scrollTo({ top: 100, behavior: "smooth" });
   };
 
+  // ── Success screen ──────────────────────────────────────────────────────────
   if (result) {
     const issueConfig = ISSUE_TYPE_CONFIG[result.analysis.issue_type];
     const severityConfig = SEVERITY_CONFIG[result.analysis.severity];
 
     return (
-      <div className="min-h-screen bg-[#FAFAFC] flex flex-col items-center justify-center p-4 selection:bg-blue-100">
-        <div className="w-full max-w-md animate-in fade-in zoom-in-95 duration-500">
-          <div className="bg-white rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100/60 overflow-hidden relative">
-            {/* Background decorative gradient */}
-            <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-green-50/80 to-transparent pointer-events-none" />
-
-            <div className="relative px-8 pt-10 pb-8 text-center border-b border-gray-50">
-              <div className="w-16 h-16 rounded-2xl bg-green-100 text-green-600 flex items-center justify-center mx-auto mb-4 shadow-sm border border-green-200/50 relative">
-                <div className="absolute inset-0 rounded-2xl bg-green-400 opacity-20 animate-ping duration-1000" />
-                <CheckCircle2 className="w-8 h-8 relative z-10" />
+      <div className="min-h-screen bg-background">
+        <header className="bg-[#005189] bdu-header-stripe shadow-md">
+          <div className="max-w-2xl mx-auto px-5 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded bg-white flex items-center justify-center overflow-hidden">
+                <img src="/bdu-logo.png" alt="BDU" className="w-8 h-8 object-contain" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Report Received</h2>
-              <p className="text-sm text-gray-500 mt-2 leading-relaxed">
-                Our AI has processed your report and categorized it for immediate routing.
-              </p>
+              <div>
+                <p className="font-bold text-white text-sm leading-none">GibiPulse</p>
+                <p className="text-[11px] text-blue-200 mt-0.5">Bahir Dar University</p>
+              </div>
             </div>
+            <ThemeToggle />
+          </div>
+        </header>
 
-            <div className="px-8 py-6 space-y-5 bg-gray-50/50">
-              <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 space-y-4 relative overflow-hidden group">
-                <div className="absolute top-0 right-0 p-4 opacity-5 translate-x-2 -translate-y-2 transform group-hover:scale-110 transition-transform duration-700">
-                  <span className="text-6xl">{issueConfig.icon}</span>
-                </div>
-
+        <main className="max-w-2xl mx-auto px-5 py-10">
+          <div className="bg-card rounded border border-border overflow-hidden shadow-sm">
+            <div className="bg-green-600 px-6 py-5 text-white text-center">
+              <CheckCircle2 className="w-10 h-10 mx-auto mb-2" />
+              <h2 className="text-xl font-bold">Report Submitted</h2>
+              <p className="text-sm text-green-100 mt-1">Your report has been received and categorized.</p>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="border border-border rounded p-4 space-y-3">
                 <div>
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">Extracted Issue</p>
-                  <p className="font-semibold text-gray-900 text-lg flex items-center gap-2">
-                    {issueConfig.label}
-                  </p>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Issue Type</p>
+                  <p className="font-semibold text-foreground">{issueConfig.label}</p>
                 </div>
-
-                <div className="grid grid-cols-2 gap-4 pt-2 border-t border-gray-50">
+                <div className="grid grid-cols-2 gap-4 pt-3 border-t border-border">
                   <div>
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">Priority</p>
-                    <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-md border uppercase tracking-wide ${severityConfig.bg}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${severityConfig.dot} animate-pulse`} />
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Priority</p>
+                    <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded border ${severityConfig.bg}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${severityConfig.dot}`} />
                       {severityConfig.label}
                     </span>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">Location</p>
-                    <p className="font-medium text-gray-800 text-sm truncate" title={result.analysis.location}>📍 {result.analysis.location}</p>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Location</p>
+                    <p className="font-medium text-foreground text-sm">📍 {result.analysis.location}</p>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-gradient-to-br from-blue-50 to-indigo-50/30 rounded-2xl p-5 border border-blue-100/50">
-                <div className="flex items-center gap-2 mb-2">
-                  <Sparkles className="w-4 h-4 text-blue-500" />
-                  <p className="text-xs text-blue-600 font-bold uppercase tracking-widest">AI Synopsis</p>
-                </div>
-                <p className="text-[15px] text-gray-700 font-medium leading-snug">{result.analysis.ai_summary}</p>
+              <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded p-4">
+                <p className="text-xs font-semibold text-[#005189] dark:text-blue-400 uppercase tracking-wider mb-1">Summary</p>
+                <p className="text-sm text-foreground leading-relaxed">{result.analysis.ai_summary}</p>
               </div>
 
               {result.merged && result.group_count > 1 && (
-                <div className="flex items-start gap-3 bg-gradient-to-r from-amber-50 to-yellow-50/30 text-amber-800 rounded-2xl p-4 border border-amber-100/50">
-                  <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-                  <p className="text-sm font-medium leading-relaxed">
-                    <strong className="font-bold text-amber-900">{result.group_count} students</strong> have reported this. Your submission strengthens the priority level!
+                <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-950/20 text-amber-800 dark:text-amber-400 rounded p-4 border border-amber-200 dark:border-amber-800">
+                  <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
+                  <p className="text-sm leading-relaxed">
+                    <strong className="font-bold">{result.group_count} students</strong> have reported this. Combined reports increase priority.
                   </p>
                 </div>
               )}
 
-              <div className="px-8 pb-8 pt-2 space-y-3 bg-gray-50/50">
+              <div className="flex flex-col gap-2 pt-2">
                 <Button
                   onClick={() => { setResult(null); setMessage(""); }}
-                  className="w-full h-12 rounded-xl text-[15px] font-semibold bg-gray-900 hover:bg-gray-800 transition-all shadow-md shadow-gray-900/10"
+                  className="w-full h-10 rounded font-medium bg-[#005189] hover:bg-[#003d6b] text-white"
                 >
-                  Submit New Issue
+                  Submit Another Report
                 </Button>
                 <Button
                   onClick={() => window.location.href = "/feed"}
-                  className="w-full h-12 rounded-xl text-[15px] font-semibold text-gray-600 bg-white border-gray-200 hover:bg-gray-50 hover:text-gray-900 transition-all"
                   variant="outline"
+                  className="w-full h-10 rounded font-medium"
                 >
-                  View Live Campus Feed
+                  View Campus Feed
                 </Button>
               </div>
             </div>
           </div>
-        </div>
-        );
+        </main>
+      </div>
+    );
   }
 
-        return (
-        <div className="min-h-screen bg-[#FDFDFE] selection:bg-blue-100 relative overflow-hidden">
-          {/* Premium Background Effects */}
-          <div className="absolute top-0 inset-x-0 h-96 bg-gradient-to-b from-blue-50/60 to-transparent pointer-events-none" />
-          <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute top-20 -left-20 w-72 h-72 bg-purple-400/10 rounded-full blur-3xl pointer-events-none" />
+  // ── Main form ───────────────────────────────────────────────────────────────
+  return (
+    <div className="min-h-screen bg-background text-foreground">
+      {/* BDU motto bar */}
+      <div className="bg-[#003d6b] text-white text-xs py-1.5 px-4 text-center">
+        <span className="opacity-80">Bahir Dar University — "Wisdom at the Source of the Blue Nile"</span>
+      </div>
 
-          {/* Modern Header */}
-          <nav className="relative z-20 border-b border-gray-100/50 bg-white/70 backdrop-blur-md supports-[backdrop-filter]:bg-white/40">
-            <div className="max-w-2xl mx-auto px-5 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-md shadow-blue-500/20">
-                  <Zap className="w-4 h-4 text-white fill-current" />
-                </div>
-                <div>
-                  <p className="font-bold text-gray-900 text-[15px] tracking-tight leading-none bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600">GibiPulse</p>
-                  <p className="text-[11px] font-medium text-gray-500 tracking-wider uppercase mt-1">Bahir Dar University</p>
-                </div>
-              </div>
-              <button
-                onClick={() => window.location.href = "/feed"}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-gray-200/60 shadow-sm hover:shadow-md transition-all group"
-              >
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                </span>
-                <span className="text-xs font-bold text-gray-700 tracking-wide">LIVE</span>
-                <ChevronRight className="w-3 h-3 text-gray-400 group-hover:text-gray-600 transition-colors" />
-              </button>
+      {/* Header */}
+      <header className="bg-[#005189] bdu-header-stripe shadow-md">
+        <div className="max-w-2xl mx-auto px-5 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded bg-white flex items-center justify-center overflow-hidden shadow-sm">
+              <img src="/bdu-logo.png" alt="BDU Logo" className="w-8 h-8 object-contain" />
             </div>
-          </header>
-
-          <main className="relative z-10 max-w-2xl mx-auto px-5 py-8 sm:py-12">
-            {/* Dynamic Hero */}
-            <div className="text-center mb-10 space-y-3 animate-in slide-in-from-bottom-4 duration-700 fade-in">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-100 text-blue-700 text-xs font-semibold uppercase tracking-wider mb-2">
-                <Sparkles className="w-3.5 h-3.5" />
-                AI-Powered Reporting
-              </div>
-              <h1 className="text-4xl sm:text-5xl font-extrabold text-slate-900 tracking-tight">
-                Fix <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-500">campus chaos</span> faster.
-              </h1>
-              <p className="text-base sm:text-lg text-slate-500 max-w-md mx-auto leading-relaxed">
-                Report issues in Amharic, English, or slang. GibiPulse AI routes it instantly to the right team.
-              </p>
+            <div>
+              <p className="font-bold text-white text-[15px] leading-none">GibiPulse</p>
+              <p className="text-[11px] text-blue-200 mt-0.5 tracking-wide">Bahir Dar University — Campus Reporting</p>
             </div>
-
-            {/* Floating Form Card */}
-            <div className="bg-white rounded-[2rem] p-6 sm:p-8 shadow-[0_8px_40px_-12px_rgba(0,0,0,0.08)] border border-gray-100 mb-10 animate-in slide-in-from-bottom-8 duration-700 delay-100 fade-in relative hover:shadow-[0_16px_60px_-15px_rgba(0,0,0,0.1)] transition-shadow duration-500">
-              <form onSubmit={handleSubmit} className="space-y-6">
-
-                <div className="space-y-2 group">
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest group-focus-within:text-blue-600 transition-colors">
-                    Student ID
-                  </label>
-                  <div className="relative">
-                    <Input
-                      type="text"
-                      placeholder="e.g. 1602534"
-                      value={studentId}
-                      onChange={(e) => setStudentId(e.target.value)}
-                      className="pl-4 h-12 bg-gray-50/50 border-gray-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 rounded-xl font-mono text-sm transition-all"
-                      maxLength={10}
-                      inputMode="numeric"
-                    />
-                  </div>
-                </div>
-
-                {/* Building + Dorm */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2 group">
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest group-focus-within:text-blue-600 transition-colors">
-                      Building
-                    </label>
-                    <div className="relative">
-                      <Input
-                        type="text"
-                        placeholder="e.g. Guna"
-                        value={building}
-                        onChange={(e) => setBuilding(e.target.value)}
-                        className="pl-4 h-12 bg-gray-50/50 border-gray-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 rounded-xl text-sm transition-all"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2 group">
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest group-focus-within:text-blue-600 transition-colors">
-                      Dorm Number
-                    </label>
-                    <div className="relative">
-                      <Input
-                        type="text"
-                        placeholder="e.g. 104"
-                        value={dormNumber}
-                        onChange={(e) => setDormNumber(e.target.value)}
-                        className="pl-4 h-12 bg-gray-50/50 border-gray-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 rounded-xl text-sm transition-all"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-2 group">
-                  <div className="flex justify-between items-end">
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest group-focus-within:text-blue-600 transition-colors">
-                      Describe the issue
-                    </label>
-                    <span className={`text-[#A0AEC0] text-xs font-medium transition-colors ${message.length > 400 ? 'text-amber-500' : ''}`}>
-                      {message.length}/500
-                    </span>
-                  </div>
-                  <div className="relative">
-                    <Textarea
-                      placeholder={'What\'s broken, and where?\n\nExamples:\n- "Abdisa aga wuha tefa, can\'t wash hands"\n- "Main lib wifi down complete outage"'}
-                      value={message}
-                      onChange={(e) => setMessage(e.target.value)}
-                      onFocus={() => setIsFocused(true)}
-                      onBlur={() => setIsFocused(false)}
-                      className={`min-h-[140px] resize-none text-[15px] p-4 bg-gray-50/50 border-gray-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 rounded-xl transition-all leading-relaxed ${isFocused ? 'shadow-inner' : ''}`}
-                      maxLength={500}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-widest">
-                    Attach Evidence (Optional)
-                  </label>
-
-                  {!imagePreview ? (
-                    <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-border rounded-xl cursor-pointer bg-muted/20 hover:bg-muted/50 transition-colors">
-                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                        <Camera className="w-6 h-6 text-muted-foreground mb-2" />
-                        <p className="text-xs text-muted-foreground"><span className="font-semibold text-primary">Click to upload</span> or drag and drop</p>
-                      </div>
-                      <input
-                        type="file"
-                        className="hidden"
-                        accept="image/*"
-                        onChange={(e) => {
-                          if (e.target.files && e.target.files[0]) {
-                            setImageFile(e.target.files[0]);
-                            setImagePreview(URL.createObjectURL(e.target.files[0]));
-                          }
-                        }}
-                      />
-                    </label>
-                  ) : (
-                    <div className="relative w-full overflow-hidden rounded-xl border border-border group">
-                      <div className="absolute top-2 right-2 z-10 flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => { setImageFile(null); setImagePreview(null); }}
-                          className="p-1.5 bg-black/50 hover:bg-black text-white rounded-full transition-colors backdrop-blur-sm"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={imagePreview} alt="Evidence" className="w-full h-40 object-cover" />
-                      <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/60 to-transparent p-3 pointer-events-none">
-                        <div className="flex items-center gap-1.5">
-                          <Sparkles className="w-3.5 h-3.5 text-blue-400" />
-                          <p className="text-xs font-medium text-white opacity-90">AI Vision will analyze this photo</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <Button
-                  type="submit"
-                  disabled={loading || !studentId || !message}
-                  className="w-full h-14 rounded-xl text-base font-semibold transition-all group overflow-hidden relative shadow-lg shadow-blue-500/25 bg-gray-900 hover:bg-black text-white hover:shadow-xl hover:shadow-blue-500/30 disabled:opacity-50 disabled:shadow-none"
-                >
-                  {loading ? (
-                    <div className="flex items-center gap-2">
-                      <Loader2 className="w-5 h-5 animate-spin text-blue-400" />
-                      <span className="text-gray-300">AI Processing...</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-center gap-2">
-                      <Send className="w-4 h-4" />
-                      Submit Report
-                    </div>
-                  )}
-                </Button>
-              </form>
-            </div>
-
-            {/* Express Options */}
-            <div className="mb-12 animate-in slide-in-from-bottom-10 duration-700 delay-200 fade-in">
-              <div className="flex items-center gap-3 mb-4">
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Quick Report Examples</h3>
-                <div className="h-px bg-gray-200 flex-1 rounded-full"></div>
-              </div>
-              <div className="flex flex-wrap gap-2.5">
-                {EXAMPLE_REPORTS.map((example, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => handleExampleClick(example)}
-                    className="text-left text-xs font-medium text-gray-600 bg-white border border-gray-200/80 rounded-full px-4 py-2 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 transition-all shadow-sm active:scale-95 line-clamp-1 max-w-[90%]"
-                    title={example}
-                  >
-                    &ldquo;{example}&rdquo;
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Recent Issues */}
-            {recentIssues.length > 0 && (
-              <div className="animate-in slide-in-from-bottom-12 duration-700 delay-300 fade-in">
-                <div className="flex items-center gap-3 mb-4">
-                  <Activity className="w-4 h-4 text-gray-400" />
-                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Live Campus Intelligence</h3>
-                </div>
-                <div className="grid sm:grid-cols-2 gap-3">
-                  {recentIssues.map((issue, i) => {
-                    const typeConfig = ISSUE_TYPE_CONFIG[issue.type as keyof typeof ISSUE_TYPE_CONFIG];
-                    const sevConfig = SEVERITY_CONFIG[issue.severity as keyof typeof SEVERITY_CONFIG];
-                    return (
-                      <div key={i} className="bg-white border border-gray-100 rounded-2xl p-4 flex items-center justify-between shadow-sm hover:border-gray-200 transition-colors">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className={`w-8 h-8 rounded flex items-center justify-center shrink-0 text-base ${typeConfig?.bg}`}>
-                            {typeConfig?.icon}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-sm font-bold text-gray-900 truncate">{typeConfig?.label}</p>
-                            <p className="text-xs font-medium text-gray-400 truncate mt-0.5">{issue.location}</p>
-                          </div>
-                        </div>
-                        <div className="flex flex-col items-end gap-1.5 shrink-0 pl-2">
-                          <span className={`text-[10px] uppercase font-bold tracking-wider px-1.5 rounded-sm border ${sevConfig?.bg}`}>
-                            {sevConfig?.label}
-                          </span>
-                          <span className="text-[10px] font-medium text-gray-400">{timeAgo(issue.time)}</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </main>
-
-          {/* Footer */}
-          <footer className="border-t border-border bg-card mt-8">
-            <div className="max-w-2xl mx-auto px-5 py-4 flex items-center justify-between text-xs text-muted-foreground">
-              <span>© {new Date().getFullYear()} Bahir Dar University — GibiPulse</span>
-              <span>Campus Infrastructure Reporting</span>
-            </div>
-          </footer>
+          </div>
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <button
+              onClick={() => window.location.href = "/feed"}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold bg-[#FFCC00] text-[#003d6b] hover:bg-yellow-300 transition-colors"
+            >
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#003d6b] opacity-50" />
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#003d6b]" />
+              </span>
+              LIVE FEED
+              <ChevronRight className="w-3 h-3" />
+            </button>
+          </div>
         </div>
-        );
+      </header>
+
+      <main className="max-w-2xl mx-auto px-5 py-8">
+        {/* Page intro */}
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-4">
+            <img src="/bdu-full-logo.png" alt="Bahir Dar University" className="h-14 w-auto object-contain" />
+          </div>
+          <h1 className="text-2xl font-bold text-foreground mb-1">Campus Issue Report Form</h1>
+          <p className="text-sm text-muted-foreground">
+            Report infrastructure problems in your dorm or campus facility. Write in English or <span className="font-medium text-foreground">አማርኛ</span>.
+          </p>
+        </div>
+
+        {/* Form card */}
+        <div className="bg-card rounded border border-border shadow-sm mb-8">
+          <div className="px-5 py-3 border-b border-border bg-muted/40">
+            <h2 className="text-sm font-semibold text-foreground">Student Information &amp; Report</h2>
+          </div>
+
+          <form onSubmit={handleSubmit} className="p-5 space-y-5">
+            {/* Student ID */}
+            <div className="space-y-1.5">
+              <label className="block text-sm font-medium text-foreground">
+                Student ID <span className="text-destructive">*</span>
+              </label>
+              <Input
+                type="text"
+                placeholder="e.g. 1602534"
+                value={studentId}
+                onChange={(e) => setStudentId(e.target.value)}
+                className="h-10 rounded bg-background border-border focus:border-[#005189] focus:ring-2 focus:ring-[#005189]/20 font-mono text-sm"
+                maxLength={10}
+                inputMode="numeric"
+              />
+            </div>
+
+            {/* Building + Dorm */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-foreground">
+                  Building <span className="text-destructive">*</span>
+                </label>
+                <Input
+                  type="text"
+                  placeholder="e.g. Guna"
+                  value={building}
+                  onChange={(e) => setBuilding(e.target.value)}
+                  className="h-10 rounded bg-background border-border focus:border-[#005189] focus:ring-2 focus:ring-[#005189]/20 text-sm"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-foreground">
+                  Dorm Number <span className="text-destructive">*</span>
+                </label>
+                <Input
+                  type="text"
+                  placeholder="e.g. 104"
+                  value={dormNumber}
+                  onChange={(e) => setDormNumber(e.target.value)}
+                  className="h-10 rounded bg-background border-border focus:border-[#005189] focus:ring-2 focus:ring-[#005189]/20 text-sm"
+                />
+              </div>
+            </div>
+
+            {/* Issue description */}
+            <div className="space-y-1.5">
+              <div className="flex justify-between items-center">
+                <label className="block text-sm font-medium text-foreground">
+                  Describe the Issue <span className="text-destructive">*</span>
+                </label>
+                <span className={`text-xs text-muted-foreground ${message.length > 400 ? "text-destructive" : ""}`}>
+                  {message.length}/500
+                </span>
+              </div>
+              <Textarea
+                placeholder={"What's the problem? Write in Amharic, English, or both:\n\n• \"Abdisa aga wuha tefa, can't wash hands\"\n• \"ውሃ ጠፋ ሻወር አልሆነልንም\"\n• \"ማብራት ጠፋ ከዛሬ ጠዋት ጀምሮ\""}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => setIsFocused(false)}
+                className={`min-h-32 resize-none text-sm p-3 bg-background border-border rounded focus:border-[#005189] focus:ring-2 focus:ring-[#005189]/20 leading-relaxed transition-shadow ${isFocused ? "shadow-inner" : ""}`}
+                maxLength={500}
+              />
+            </div>
+
+            {/* Image upload */}
+            <div className="space-y-1.5">
+              <label className="block text-sm font-medium text-foreground">
+                Attach Photo (Optional)
+              </label>
+              {!imagePreview ? (
+                <label className="flex items-center justify-center w-full h-20 border-2 border-dashed border-border rounded cursor-pointer bg-muted/20 hover:bg-muted/50 transition-colors gap-2 text-sm text-muted-foreground">
+                  <Camera className="w-4 h-4" />
+                  <span><span className="font-medium text-[#005189]">Click to upload</span> or drag and drop</span>
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/*"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        setImageFile(e.target.files[0]);
+                        setImagePreview(URL.createObjectURL(e.target.files[0]));
+                      }
+                    }}
+                  />
+                </label>
+              ) : (
+                <div className="relative w-full overflow-hidden rounded border border-border">
+                  <button
+                    type="button"
+                    onClick={() => { setImageFile(null); setImagePreview(null); }}
+                    className="absolute top-2 right-2 z-10 p-1 bg-black/60 hover:bg-black text-white rounded transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={imagePreview} alt="Evidence" className="w-full h-36 object-cover" />
+                </div>
+              )}
+            </div>
+
+            <Button
+              type="submit"
+              disabled={loading || !studentId || !message}
+              className="w-full h-11 rounded font-semibold text-sm bg-[#005189] hover:bg-[#003d6b] text-white transition-colors disabled:opacity-50"
+            >
+              {loading ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Submitting...</span>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center gap-2">
+                  <Send className="w-4 h-4" />
+                  Submit Report
+                </div>
+              )}
+            </Button>
+          </form>
+        </div>
+
+        {/* Quick Examples */}
+        <div className="mb-8">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+            Quick Report Examples
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {EXAMPLE_REPORTS.map((example, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => handleExampleClick(example)}
+                className="text-left text-xs text-muted-foreground bg-card border border-border rounded px-3 py-1.5 hover:border-[#005189]/40 hover:text-[#005189] hover:bg-blue-50 dark:hover:bg-blue-950/20 transition-colors line-clamp-1 max-w-[90%]"
+                title={example}
+              >
+                &ldquo;{example}&rdquo;
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Recent Issues */}
+        {recentIssues.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Activity className="w-4 h-4 text-muted-foreground" />
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Recent Campus Issues</h3>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-3">
+              {recentIssues.map((issue, i) => {
+                const typeConfig = ISSUE_TYPE_CONFIG[issue.type as keyof typeof ISSUE_TYPE_CONFIG];
+                const sevConfig = SEVERITY_CONFIG[issue.severity as keyof typeof SEVERITY_CONFIG];
+                return (
+                  <div key={i} className="bg-card border border-border rounded p-3 flex items-center justify-between">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={`w-8 h-8 rounded flex items-center justify-center shrink-0 text-base ${typeConfig?.bg}`}>
+                        {typeConfig?.icon}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold truncate">{typeConfig?.label}</p>
+                        <p className="text-xs text-muted-foreground truncate mt-0.5">{issue.location}</p>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-1 shrink-0 pl-2">
+                      <span className={`text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded border ${sevConfig?.bg}`}>
+                        {sevConfig?.label}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">{timeAgo(issue.time)}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t border-border bg-card mt-8">
+        <div className="max-w-2xl mx-auto px-5 py-4 flex items-center justify-between text-xs text-muted-foreground">
+          <span>© {new Date().getFullYear()} Bahir Dar University — GibiPulse</span>
+          <span>Campus Infrastructure Reporting</span>
+        </div>
+      </footer>
+    </div>
+  );
 }
