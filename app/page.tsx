@@ -11,6 +11,8 @@ import type { AnalysisResult } from "@/lib/types";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { createClient } from "@/lib/supabase/client";
 import { VoiceWave } from "@/components/ui/voice-wave";
+import { TrackReports } from "@/components/track-reports";
+import { STATUS_CONFIG } from "@/lib/config";
 
 const EXAMPLE_REPORTS = [
   "Abdisa aga wuha tefa again, we can't even wash our hands",
@@ -39,6 +41,7 @@ interface RecentIssue {
 }
 
 export default function StudentPage() {
+  const [view, setView] = useState<"report" | "track">("report");
   const [studentId, setStudentId] = useState("");
   const [building, setBuilding] = useState("");
   const [dormNumber, setDormNumber] = useState("");
@@ -358,7 +361,7 @@ export default function StudentPage() {
       <header className="bg-[#005189] bdu-header-stripe shadow-md">
         <div className="max-w-2xl mx-auto px-5 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded bg-white flex items-center justify-center overflow-hidden shadow-sm">
+            <div className="w-10 h-10 rounded bg-white flex items-center justify-center overflow-hidden shadow-sm hover:scale-105 transition-transform cursor-pointer" onClick={() => setView("report")}>
               <img src="/bdu-logo.png" alt="BDU Logo" className="w-8 h-8 object-contain" />
             </div>
             <div>
@@ -370,7 +373,7 @@ export default function StudentPage() {
             <ThemeToggle />
             <button
               onClick={() => window.location.href = "/feed"}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold bg-[#FFCC00] text-[#003d6b] hover:bg-yellow-300 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold bg-[#FFCC00] text-[#003d6b] hover:bg-yellow-300 transition-colors shadow-sm"
             >
               <span className="relative flex h-1.5 w-1.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#003d6b] opacity-50" />
@@ -384,8 +387,36 @@ export default function StudentPage() {
       </header>
 
       <main className="max-w-2xl mx-auto px-5 py-8">
-        {/* Page intro */}
-        <div className="mb-6">
+        {/* View Switcher */}
+        <div className="flex items-center gap-1 p-1 bg-muted rounded-lg mb-8 w-fit mx-auto sm:mx-0 shadow-sm border border-border">
+          <button
+            onClick={() => setView("report")}
+            className={`flex items-center gap-2 px-4 py-1.5 text-xs font-bold rounded-md transition-all ${
+              view === "report" 
+                ? "bg-white dark:bg-slate-800 text-[#005189] dark:text-blue-400 shadow-sm ring-1 ring-black/5" 
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Send className="w-3.5 h-3.5" />
+            Report Issue
+          </button>
+          <button
+            onClick={() => setView("track")}
+            className={`flex items-center gap-2 px-4 py-1.5 text-xs font-bold rounded-md transition-all ${
+              view === "track" 
+                ? "bg-white dark:bg-slate-800 text-[#005189] dark:text-blue-400 shadow-sm ring-1 ring-black/5" 
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Activity className="w-3.5 h-3.5" />
+            Track Status
+          </button>
+        </div>
+
+        {view === "report" ? (
+          <>
+            {/* Page intro */}
+            <div className="mb-6">
           <div className="flex items-center gap-3 mb-4">
             <img src="/bdu-full-logo.png" alt="Bahir Dar University" className="h-14 w-auto object-contain" />
           </div>
@@ -634,7 +665,11 @@ export default function StudentPage() {
             </div>
           </div>
         )}
-      </main>
+      </>
+    ) : (
+      <TrackReports />
+    )}
+  </main>
 
       {/* Footer */}
       <footer className="border-t border-border bg-card mt-8">
