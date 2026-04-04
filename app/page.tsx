@@ -50,8 +50,44 @@ export default function StudentPage() {
   const [recentIssues, setRecentIssues] = useState<RecentIssue[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const [voiceLang, setVoiceLang] = useState<"am-ET" | "en-US">("am-ET");
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [detectedType, setDetectedType] = useState<string | null>(null);
   const recognitionRef = useRef<any>(null);
   const supabase = createClient();
+
+  const runMagicFill = async (text: string) => {
+    if (!text || text.trim().length < 8 || isAnalyzing) return;
+
+    setIsAnalyzing(true);
+    try {
+      const response = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          message: text,
+          building: building,
+          dorm_number: dormNumber
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const { analysis } = data;
+
+        // Auto-fill building if empty
+        if (!building.trim() && analysis.location && analysis.location !== "Unknown Location") {
+          setBuilding(analysis.location);
+          toast.success(`Magic Fill: Detected ${analysis.location}`, { icon: "✨" });
+        }
+
+        setDetectedType(analysis.issue_type);
+      }
+    } catch (error) {
+      console.error("Magic fill error:", error);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -66,8 +102,10 @@ export default function StudentPage() {
 
         recognitionRef.current.onresult = (event: any) => {
           const transcript = event.results[0][0].transcript;
-          setMessage((prev) => (prev ? prev + " " + transcript : transcript));
+          const newMsg = message ? message + " " + transcript : transcript;
+          setMessage(newMsg);
           toast.success("Voice transcribed!");
+          runMagicFill(newMsg);
         };
 
         recognitionRef.current.onerror = (event: any) => {
@@ -377,11 +415,20 @@ export default function StudentPage() {
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   onFocus={() => setIsFocused(true)}
-                  onBlur={() => setIsFocused(false)}
+                  onBlur={() => {
+                    setIsFocused(false);
+                    runMagicFill(message);
+                  }}
                   className={`min-h-32 resize-none text-sm p-3 pr-12 bg-background border-border rounded focus:border-[#005189] focus:ring-2 focus:ring-[#005189]/20 leading-relaxed transition-shadow ${isFocused ? "shadow-inner" : ""}`}
                   maxLength={500}
                 />
                 <div className="absolute bottom-3 right-3 flex items-center gap-2">
+                  {isAnalyzing && (
+                    <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 animate-pulse">
+                      <Sparkles className="w-3 h-3 text-blue-500" />
+                      <span className="text-[9px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-tighter">Analyzing...</span>
+                    </div>
+                  )}
                   <button
                     type="button"
                     onClick={() => setVoiceLang(voiceLang === "am-ET" ? "en-US" : "am-ET")}
@@ -414,6 +461,22 @@ export default function StudentPage() {
                   </button>
                 </div>
               </div>
+              {detectedType && (
+                <div className="flex items-center gap-2 mt-2 ml-1">
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">AI Detected Category:</span>
+                  <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border shadow-sm ${ISSUE_TYPE_CONFIG[detectedType as keyof typeof ISSUE_TYPE_CONFIG]?.bg || "bg-muted border-border"}`}>
+                    {ISSUE_TYPE_CONFIG[detectedType as keyof typeof ISSUE_TYPE_CONFIG]?.icon}
+                    {ISSUE_TYPE_CONFIG[detectedType as keyof typeof ISSUE_TYPE_CONFIG]?.label}
+                  </span>
+                  <button 
+                    type="button" 
+                    onClick={() => setDetectedType(null)}
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Image upload */}
