@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
-import { Loader2, Send, CheckCircle2, AlertTriangle, ChevronRight, Activity, Camera, X, Sparkles, Star } from "lucide-react";
+import { Loader2, Send, CheckCircle2, AlertTriangle, ChevronRight, Activity, Camera, X, Sparkles, Star, Mic, MicOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -48,7 +48,63 @@ export default function StudentPage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [recentIssues, setRecentIssues] = useState<RecentIssue[]>([]);
+  const [isRecording, setIsRecording] = useState(false);
+  const [voiceLang, setVoiceLang] = useState<"am-ET" | "en-US">("am-ET");
+  const recognitionRef = useRef<any>(null);
   const supabase = createClient();
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        recognitionRef.current = new SpeechRecognition();
+        recognitionRef.current.continuous = false; // Set to false to stop automatically when user stops speaking
+        recognitionRef.current.interimResults = false;
+        
+        // We can dynamically switch between am-ET and en-US if needed, but am-ET often works for both in some engines
+        recognitionRef.current.lang = 'am-ET';
+
+        recognitionRef.current.onresult = (event: any) => {
+          const transcript = event.results[0][0].transcript;
+          setMessage((prev) => (prev ? prev + " " + transcript : transcript));
+          toast.success("Voice transcribed!");
+        };
+
+        recognitionRef.current.onerror = (event: any) => {
+          if (event.error !== "no-speech") {
+            console.error("Speech recognition error:", event.error);
+            toast.error("Speech recognition error: " + event.error);
+          }
+          setIsRecording(false);
+        };
+
+        recognitionRef.current.onend = () => {
+          setIsRecording(false);
+        };
+      }
+    }
+  }, []);
+
+  const toggleRecording = () => {
+    if (!recognitionRef.current) {
+      toast.error("Speech recognition not supported in your browser. Use Chrome or Edge.");
+      return;
+    }
+
+    if (isRecording) {
+      recognitionRef.current.stop();
+    } else {
+      try {
+        recognitionRef.current.lang = voiceLang;
+        recognitionRef.current.start();
+        setIsRecording(true);
+        toast.info(`Listening in ${voiceLang === "am-ET" ? "Amharic" : "English"}...`, { icon: "🎤" });
+      } catch (err) {
+        console.error("Failed to start recognition:", err);
+        setIsRecording(false);
+      }
+    }
+  };
 
   useEffect(() => {
     setRecentIssues([
@@ -315,15 +371,49 @@ export default function StudentPage() {
                   {message.length}/500
                 </span>
               </div>
-              <Textarea
-                placeholder={"What's the problem? Write in Amharic, English, or both:\n\n• \"Abdisa aga wuha tefa, can't wash hands\"\n• \"ውሃ ጠፋ ሻወር አልሆነልንም\"\n• \"ማብራት ጠፋ ከዛሬ ጠዋት ጀምሮ\""}
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                onFocus={() => setIsFocused(true)}
-                onBlur={() => setIsFocused(false)}
-                className={`min-h-32 resize-none text-sm p-3 bg-background border-border rounded focus:border-[#005189] focus:ring-2 focus:ring-[#005189]/20 leading-relaxed transition-shadow ${isFocused ? "shadow-inner" : ""}`}
-                maxLength={500}
-              />
+              <div className="relative group">
+                <Textarea
+                  placeholder={"What's the problem? Write in Amharic, English, or both:\n\n• \"Abdisa aga wuha tefa, can't wash hands\"\n• \"ውሃ ጠፋ ሻወር አልሆነልንም\"\n• \"ማብራት ጠፋ ከዛሬ ጠዋት ጀምሮ\""}
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  onFocus={() => setIsFocused(true)}
+                  onBlur={() => setIsFocused(false)}
+                  className={`min-h-32 resize-none text-sm p-3 pr-12 bg-background border-border rounded focus:border-[#005189] focus:ring-2 focus:ring-[#005189]/20 leading-relaxed transition-shadow ${isFocused ? "shadow-inner" : ""}`}
+                  maxLength={500}
+                />
+                <div className="absolute bottom-3 right-3 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setVoiceLang(voiceLang === "am-ET" ? "en-US" : "am-ET")}
+                    className={`h-8 px-2.5 rounded-full transition-all flex items-center gap-1.5 border shadow-sm ${
+                      isRecording ? "opacity-50 cursor-not-allowed" : "hover:border-blue-300 dark:hover:border-blue-800 hover:bg-blue-50/50 dark:hover:bg-blue-950/30"
+                    } bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-[10px] font-bold`}
+                    disabled={isRecording}
+                    title="Change language"
+                  >
+                    <span className={voiceLang === "en-US" ? "text-[#005189] dark:text-blue-400" : "text-muted-foreground"}>EN</span>
+                    <span className="w-[1px] h-2 bg-slate-300 dark:bg-slate-700" />
+                    <span className={voiceLang === "am-ET" ? "text-[#005189] dark:text-blue-400" : "text-muted-foreground"}>አማ</span>
+                  </button>
+                  {isRecording && (
+                    <span className="text-[10px] font-bold text-red-600 animate-pulse uppercase tracking-wider bg-red-50 dark:bg-red-950/30 px-2 py-0.5 rounded-full border border-red-100 dark:border-red-900/50">
+                      Listening...
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={toggleRecording}
+                    className={`h-9 w-9 rounded-full transition-all flex items-center justify-center shadow-sm border ${
+                      isRecording 
+                        ? "bg-red-500 text-white animate-pulse border-red-600 ring-4 ring-red-100 dark:ring-red-900/20 scale-110" 
+                        : "bg-white dark:bg-slate-800 text-[#005189] dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30 border-blue-100 dark:border-blue-900 hover:border-blue-200 dark:hover:border-blue-800 hover:scale-105"
+                    }`}
+                    title={isRecording ? "Stop recording" : "Record voice"}
+                  >
+                    {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
             </div>
 
             {/* Image upload */}
