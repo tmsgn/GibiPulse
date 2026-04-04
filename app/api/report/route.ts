@@ -101,6 +101,7 @@ export async function POST(request: NextRequest) {
         analysis,
         merged: true,
         group_count: (updatedGroup?.report_count ?? existingGroup.report_count + 1),
+        group_id: groupId,
         message: "Your report has been merged with similar active reports.",
       });
     }
@@ -150,6 +151,7 @@ export async function POST(request: NextRequest) {
       analysis,
       merged: false,
       group_count: 1,
+      group_id: groupId,
       message: "Report submitted successfully.",
     });
   } catch (error) {

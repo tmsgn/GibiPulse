@@ -31,6 +31,29 @@ export interface ReportGroup {
   created_at: string;
   resolved_at: string | null;
   image_url?: string | null;
+  // Feedback fields
+  satisfaction_rating: number | null;
+  satisfaction_count: number;
+  rating_comment: string | null;
+  reopen_count: number;
+  feedback_locked: boolean;
+}
+
+export interface GroupFeedback {
+  id: string;
+  group_id: string;
+  student_id: string;
+  rating: number; // 1–5
+  comment: string | null;
+  is_not_fixed: boolean;
+  created_at: string;
+}
+
+export interface DepartmentStats {
+  department: string;
+  avg_rating: number;
+  rated_count: number;
+  resolved_count: number;
 }
 
 export interface AnalysisResult {

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import {
   LogOut, RefreshCw, CheckCircle2, Clock,
-  AlertTriangle, Users, BarChart3, Filter, Sparkles, Image as ImageIcon, X
+  AlertTriangle, Users, BarChart3, Filter, Sparkles, Image as ImageIcon, X, Star, TrendingUp
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/select";
 import { createClient } from "@/lib/supabase/client";
 import { ISSUE_TYPE_CONFIG, SEVERITY_CONFIG, STATUS_CONFIG, timeAgo } from "@/lib/config";
-import type { ReportGroup, IssueType, SeverityLevel } from "@/lib/types";
+import type { ReportGroup, IssueType, SeverityLevel, DepartmentStats } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -32,6 +32,33 @@ const DEPARTMENTS = [
   "General Maintenance",
 ];
 
+// ─── Star Display (read-only) ─────────────────────────────────────────────────
+function StarDisplay({ rating, count }: { rating: number | null; count: number }) {
+  if (!rating || count === 0) return <span className="text-xs text-muted-foreground">No ratings yet</span>;
+  const filled = Math.round(rating);
+  return (
+    <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-0.5">
+        {[1, 2, 3, 4, 5].map((s) => (
+          <Star
+            key={s}
+            className={`w-3.5 h-3.5 ${s <= filled ? "fill-amber-400 text-amber-400" : "fill-transparent text-muted-foreground/30"}`}
+          />
+        ))}
+      </div>
+      <span className="text-xs font-semibold text-foreground">{rating.toFixed(1)}</span>
+      <span className="text-xs text-muted-foreground">({count})</span>
+    </div>
+  );
+}
+
+// ─── Department Rating Badge ──────────────────────────────────────────────────
+function DeptRatingBadge({ avg }: { avg: number }) {
+  if (avg >= 4) return <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200">⭐ {avg.toFixed(1)}</span>;
+  if (avg >= 2.5) return <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 border border-yellow-200">⭐ {avg.toFixed(1)}</span>;
+  return <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200">⭐ {avg.toFixed(1)}</span>;
+}
+
 export default function AdminDashboard() {
   const router = useRouter();
   const [groups, setGroups] = useState<ReportGroup[]>([]);
@@ -41,12 +68,18 @@ export default function AdminDashboard() {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [departmentStats, setDepartmentStats] = useState<DepartmentStats[]>([]);
 
   const fetchGroups = useCallback(async () => {
     try {
-      const res = await fetch("/api/groups");
-      const data = await res.json();
-      if (data.groups) setGroups(data.groups);
+      const [groupsRes, statsRes] = await Promise.all([
+        fetch("/api/groups"),
+        fetch("/api/groups?stats=departments"),
+      ]);
+      const groupsData = await groupsRes.json();
+      const statsData = await statsRes.json();
+      if (groupsData.groups) setGroups(groupsData.groups);
+      if (statsData.departmentStats) setDepartmentStats(statsData.departmentStats);
     } catch {
       toast.error("Failed to load reports");
     } finally {
@@ -229,7 +262,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Analytics Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {/* Issue Breakdown */}
           <Card className="shadow-none border-border">
             <CardHeader className="pb-2 pt-4 px-4 border-b border-border">
@@ -291,6 +324,36 @@ export default function AdminDashboard() {
               )}
             </CardContent>
           </Card>
+
+          {/* Department Performance ── NEW */}
+          <Card className="shadow-none border-border">
+            <CardHeader className="pb-2 pt-4 px-4 border-b border-border">
+              <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-emerald-500" />
+                Department Performance
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="px-4 pb-4 pt-3 space-y-2.5">
+              {departmentStats.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">No feedback received yet</p>
+              ) : (
+                departmentStats
+                  .sort((a, b) => b.avg_rating - a.avg_rating)
+                  .map((dept) => (
+                    <div key={dept.department} className="flex items-center justify-between py-1.5 border-b border-border last:border-0">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-semibold text-foreground truncate">{dept.department}</p>
+                        <p className="text-[10px] text-muted-foreground">{dept.resolved_count} resolved</p>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                        <DeptRatingBadge avg={dept.avg_rating} />
+                        <span className="text-[10px] text-muted-foreground">({dept.rated_count} rated)</span>
+                      </div>
+                    </div>
+                  ))
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         {/* Live Feed */}
@@ -347,6 +410,7 @@ export default function AdminDashboard() {
                 const severityConfig = SEVERITY_CONFIG[group.severity as SeverityLevel];
                 const statusConfig = STATUS_CONFIG[group.status];
                 const isUpdating = updatingId === group.id;
+                const isAutoReopened = group.reopen_count > 0 && group.status === "open";
 
                 return (
                   <div
@@ -355,6 +419,14 @@ export default function AdminDashboard() {
                       isUpdating ? "opacity-60" : ""
                     } ${group.severity === "critical" && group.status !== "resolved" ? "border-red-300 dark:border-red-700" : "border-border"}`}
                   >
+                    {/* Auto-reopened alert banner */}
+                    {isAutoReopened && group.reopen_count >= 3 && (
+                      <div className="px-4 py-2 bg-red-500/10 border-b border-red-500/20 flex items-center gap-2">
+                        <AlertTriangle className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                        <p className="text-[11px] font-bold text-red-600 uppercase tracking-wide">RE-OPENED BY STUDENTS</p>
+                      </div>
+                    )}
+
                     {/* Issue Header */}
                     <div className="px-4 py-3 flex items-start justify-between gap-3">
                       <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -407,6 +479,19 @@ export default function AdminDashboard() {
                       </Badge>
                       {group.assigned_to && (
                         <span className="text-xs text-muted-foreground">→ {group.assigned_to}</span>
+                      )}
+
+                      {/* Satisfaction stars on resolved issues */}
+                      {group.status === "resolved" && (
+                        <div className="ml-auto flex items-center gap-2 flex-wrap justify-end">
+                          <StarDisplay rating={group.satisfaction_rating} count={group.satisfaction_count} />
+                          {group.reopen_count > 0 && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200 flex items-center gap-1">
+                              <AlertTriangle className="w-2.5 h-2.5" />
+                              Flagged: {group.reopen_count}×
+                            </span>
+                          )}
+                        </div>
                       )}
                     </div>
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Loader2, Send, CheckCircle2, AlertTriangle, ChevronRight, Activity, Camera, X, Sparkles } from "lucide-react";
+import { Loader2, Send, CheckCircle2, AlertTriangle, ChevronRight, Activity, Camera, X, Sparkles, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -25,7 +25,10 @@ interface SubmitResult {
   merged: boolean;
   group_count: number;
   message: string;
+  group_id?: string;
 }
+
+
 
 interface RecentIssue {
   type: string;
@@ -177,6 +180,8 @@ export default function StudentPage() {
                   </p>
                 </div>
               )}
+
+              {/* ── Feedback Widget removed from here ── */}
 
               <div className="flex flex-col gap-2 pt-2">
                 <Button
