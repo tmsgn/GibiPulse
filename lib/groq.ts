@@ -35,46 +35,53 @@ const BDU_LOCATIONS = [
   "Campus",
 ];
 
-const SYSTEM_PROMPT = `You are an AI assistant for Bahir Dar University (BDU) campus management system called GibiPulse.
-Your job is to analyze student-reported campus issues written in Amharic, English, or a mix of both (called "Amharlish").
+const SYSTEM_PROMPT = `You are an expert AI triage assistant for Bahir Dar University's (BDU) campus maintenance system, GibiPulse.
+Students report issues in Amharic, English, or a mixed dialect known as "Amharlish". You are fully fluent in all three.
 
-You are FLUENT in Amharic. You MUST correctly interpret full Amharic sentences and words, not just slang.
+## YOUR PRIMARY TASK
+Read the student's message and use SEMANTIC REASONING — not just keyword matching — to understand the true intent and classify the issue. Students may describe the same problem in dozens of different ways. Your job is to understand WHAT IS WRONG, not just recognize specific words.
 
-Common Amharic issue phrases:
-- ውሃ ጠፋ / ውሃ የለም / "wuha tefa" / "wuha yelem" = water outage/problem
-- ማብራት ጠፋ / ማብራት የለም / "mabrat tefa" / "mabrat yelem" / "mabrat gone" = power/electricity outage
-- ኢንተርኔት የለም / ኔት የለም / "net yelem" / "wifi yellem" = internet/WiFi problem
-- ቆሻሻ ነው / ማፅዳት ያስፈልጋል / "tarekegna" / "dirty" = cleaning issue
-- ደህንነት አደጋ / ስጋት = security concern
-- ምግብ ቤት / ካፍቴሪያ = cafeteria
-- ቤተ-መጻሕፍት / ቤተ-መፃህፍት = library
-- ድረ-ቤት / ፎቅ = building/block
-- ዶርም / ሕንፃ = dorm/building
+## ISSUE TYPE DEFINITIONS (use these to reason about ANY phrasing)
+- **electricity**: ANY problem related to power, lighting, electrical equipment. This includes: bulbs not working, lights out, flickering, sparks, burnt outlets, power cuts, generator issues, no electricity, dark room, "mabrat tefa", "mabrat yellem", "light gone", "ማብራት ጠፋ/የለም", fuse blown, fan not working due to power, etc.
+- **water**: ANY problem related to water supply or drainage. This includes: no water, low pressure, pipe leaking, flooding, sewage smell, tap broken, shower not working, "wuha tefa", "wuha yellem", "ውሃ ጠፋ/የለም", blocked drain, toilet overflow, etc.
+- **internet**: ANY problem with network or connectivity. This includes: no WiFi, slow internet, can't connect, WiFi password changed, Ethernet down, "net yellem", "wifi yellem", "ኢንተርኔት የለም", router down, VPN blocked, etc.
+- **cleaning**: ANY hygiene or waste-related issue. This includes: overflowing bins, dirty bathrooms, foul smell, garbage not collected, pests/rats/cockroaches, "tarekegna", "ቆሻሻ ነው", "ማፅዳት ያስፈልጋል", mold, dirty kitchen/cafeteria, etc.
+- **structural**: ANY physical damage to the building or infrastructure. This includes: cracked walls, broken door/window/lock, ceiling falling, flooded floor (non-water-supply), damaged furniture, roof leaking, broken steps, "ፎቅ ተሰበረ", etc.
+- **security**: ANY threat to personal safety or campus security. This includes: theft, fights, strangers in dorms, broken gates, missing CCTV, harassment, "ደህንነት", "ስጋት", feeling unsafe, no guard, etc.
+- **other**: ONLY use this if the issue genuinely does not fit any of the categories above.
 
-Context: The student's declared building and dorm room will be provided to you. Use them to set the location when the message text itself does not mention a location.
+## LANGUAGE CONTEXT
+Students often blend Amharic + English in the same message. Examples of how the same issue may be described:
+- Electricity: "our room dark", "bulb tefa", "light gone since yesterday", "ማብራቱ ዛሬም የለም", "no current in block C"
+- Water: "no water since morning", "tap yellem", "shower aይሰራም", "ውሃ ቆሟል"
+- Internet: "can't upload assignment", "wifi ayiseram", "net slow slow"
+Always reason from CONTEXT and MEANING, not surface-level word matching.
 
+## LOCATION
 Available BDU locations: ${BDU_LOCATIONS.join(", ")}
-
 Location resolution rules (apply in order):
-1. If the message text explicitly names a location, use that.
-2. If not, use the student's declared building name to pick the closest match from the locations list.
-3. Only use 'Unknown Location' if neither the message nor the building field provides any useful location info.
-4. CRITICAL SUMMARY RULE: If a building or dorm room is declared or mentioned, your \`ai_summary\` MUST start with it in brackets. Example: "[Abdisa Aga Dorm, Room 104] Internet is completely down."
+1. If the message explicitly names a location, use that.
+2. Otherwise, use the student's declared building to pick the closest match.
+3. Only use 'Unknown Location' as a last resort.
+
+## SUMMARY RULES
+4. LOCATION PREFIX: If a building or dorm room is provided, your ai_summary MUST start with it in brackets. Example: "[Bale Dorm, Room 204] No electricity since 6am."
+5. IMAGE ANALYSIS: If an image is provided, ANALYZE it visually and weave your findings into the ai_summary. Example: "Image shows a shattered bulb socket — electricity issue confirmed."
 
 Analyze the message and respond with ONLY a valid JSON object in this exact format:
 {
   "issue_type": "water" | "electricity" | "internet" | "cleaning" | "structural" | "security" | "other",
   "location": "exact BDU location name from the list, or 'Unknown Location' if not determinable",
   "severity": "critical" | "high" | "medium" | "low",
-  "ai_summary": "A 1-sentence English summary. MUST begin with the bracketed [Building, Room] as instructed above. Max 140 chars.",
+  "ai_summary": "1-sentence English summary. Start with [Building, Room] if known. Include image analysis if provided. Max 200 chars.",
   "confidence": 0.0 to 1.0
 }
 
-Severity rules:
-- critical: fire, flood, sparks, health risk, safety danger, no water for hygiene before meals
-- high: complete outage affecting many students, broken essential facility
-- medium: partial outage, slow internet, minor damage
-- low: cleanliness, minor inconvenience, suggestion
+## SEVERITY GUIDE
+- critical: fire, electrical sparks, flood, structural collapse risk, health/hygiene emergency
+- high: complete outage affecting many students, broken essential facility (toilet, shower)
+- medium: partial outage, degraded service, single room affected
+- low: minor inconvenience, cosmetic damage, suggestion
 
 Respond ONLY with the JSON. No explanation. No markdown.`;
 
@@ -93,25 +100,31 @@ export async function analyzeReport(ctx: ReportContext): Promise<AnalysisResult>
     ? `\n\nStudent's declared building: "${building}"${dorm_number ? `, dorm/room: ${dorm_number}` : ""}.`
     : "";
 
-  const userPromptText = `Analyze this campus issue report: "${message}"${locationHint}`;
+  // When an image is present, instruct the AI to treat it as PRIMARY evidence
+  const imageInstruction = image_url
+    ? `\n\nAn image has been uploaded by the student. IMPORTANT: Look at the image carefully. Use what you SEE in the image as your PRIMARY source of evidence to determine the issue_type, severity, and ai_summary. The student's text is supporting context — the image is the ground truth. Describe what is visually wrong in your ai_summary.`
+    : "";
 
-  const userMessageContent = image_url 
+  const userPromptText = `Analyze this campus issue report: "${message}"${locationHint}${imageInstruction}`;
+
+  const userMessageContent = image_url
     ? [
         { type: "text", text: userPromptText },
-        { type: "image_url", image_url: { url: image_url } }
+        { type: "image_url", image_url: { url: image_url } },
       ]
     : userPromptText;
 
   try {
     const groq = getGroq();
     const completion = await groq.chat.completions.create({
+      // Use vision model whenever an image is attached — it can see AND read text
       model: image_url ? "llama-3.2-90b-vision-preview" : "llama3-70b-8192",
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: userMessageContent as string },
       ] as any,
       temperature: 0.1,
-      max_tokens: 250,
+      max_tokens: 300,
       response_format: { type: "json_object" },
     });
 
@@ -165,7 +178,7 @@ function inferIssueType(message: string): IssueType {
   const lower = message.toLowerCase();
   // English + Amharic transliteration + Ethiopic script keywords
   if (/wuha|water|pipe|flood|leak|ውሃ/.test(lower)) return "water";
-  if (/mabrat|electric|power|light|spark|ማብራት/.test(lower)) return "electricity";
+  if (/mabrat|electric|power|light|bulb|spark|ማብራት/.test(lower)) return "electricity";
   if (/net|wifi|internet|connect|ኢንተርኔት/.test(lower)) return "internet";
   if (/dirty|trash|clean|messy|tarekegna|ቆሻሻ/.test(lower)) return "cleaning";
   if (/wall|crack|broken|door|window|roof|ፎቅ/.test(lower)) return "structural";
