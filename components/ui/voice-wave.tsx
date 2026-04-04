@@ -8,7 +8,7 @@ interface VoiceWaveProps {
 
 export function VoiceWave({ analyser }: VoiceWaveProps) {
   const [heights, setHeights] = useState<number[]>([4, 10, 6, 12, 4]);
-  const animationRef = useRef<number>();
+  const animationRef = useRef<number>(undefined);
 
   useEffect(() => {
     if (!analyser) return;
