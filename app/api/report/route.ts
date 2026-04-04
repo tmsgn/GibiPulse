@@ -7,9 +7,9 @@ export async function POST(request: NextRequest) {
   try {
     const { student_id, building, dorm_number, message, image_url } = await request.json();
 
-    if (!student_id || !building || !dorm_number || !message) {
+    if (!student_id || !building || !message) {
       return NextResponse.json(
-        { error: "Student ID, Building, Dorm Number, and message are required" },
+        { error: "Student ID, Building, and message are required" },
         { status: 400 }
       );
     }
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     const analysis = await analyzeReport({
       message: message.trim(),
       building: building.trim(),
-      dorm_number: dorm_number.trim(),
+      dorm_number: dorm_number?.trim() || "",
       image_url: image_url,
     });
 
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
       await supabase.from("reports").insert({
         student_id: student_id.trim(),
         building: building.trim(),
-        dorm_number: dorm_number.trim(),
+        dorm_number: dorm_number?.trim() || "",
         raw_message: message.trim(),
         issue_type: analysis.issue_type,
         location: analysis.location,
@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
     const { error: reportError } = await supabase.from("reports").insert({
       student_id: student_id.trim(),
       building: building.trim(),
-      dorm_number: dorm_number.trim(),
+      dorm_number: dorm_number?.trim() || "",
       raw_message: message.trim(),
       issue_type: analysis.issue_type,
       location: analysis.location,

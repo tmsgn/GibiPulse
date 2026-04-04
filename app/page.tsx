@@ -206,7 +206,6 @@ export default function StudentPage() {
 
     if (!studentId.trim()) { toast.error("Please enter your student ID"); return; }
     if (!building.trim()) { toast.error("Please enter your building name"); return; }
-    if (!dormNumber.trim()) { toast.error("Please enter your dorm number"); return; }
     if (!message.trim()) { toast.error("Please describe the issue"); return; }
 
     setLoading(true);
@@ -236,7 +235,7 @@ export default function StudentPage() {
         body: JSON.stringify({
           student_id: studentId.trim(),
           building: building.trim(),
-          dorm_number: dormNumber.trim(),
+          dorm_number: dormNumber?.trim() || "",
           message: message.trim(),
           image_url: imageUrl,
         }),
@@ -465,7 +464,7 @@ export default function StudentPage() {
               </div>
               <div className="space-y-1.5">
                 <label className="block text-sm font-medium text-foreground">
-                  Dorm Number <span className="text-destructive">*</span>
+                  Dorm Number <span className="text-muted-foreground font-normal">(Optional)</span>
                 </label>
                 <Input
                   type="text"
