@@ -45,8 +45,8 @@ export default function AdminLoginPage() {
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex w-14 h-14 rounded-2xl bg-primary items-center justify-center mb-4 shadow-lg shadow-primary/20">
-            <Zap className="w-7 h-7 text-primary-foreground" />
+          <div className="flex justify-center mb-6">
+             <img src="/bdu-full-logo.png" alt="Bahir Dar University" className="h-20 w-auto object-contain dark:invert transition-all" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-transparent bg-clip-text bg-linear-to-r from-foreground to-foreground/70">
             GibiPulse

@@ -240,8 +240,8 @@ export default function StudentPage() {
       <nav className="relative z-20 border-b border-border/40 bg-background/70 backdrop-blur-md supports-backdrop-filter:bg-background/40">
         <div className="max-w-2xl mx-auto px-5 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-linear-to-br from-primary to-primary/80 flex items-center justify-center shadow-md shadow-primary/20">
-              <Zap className="w-4 h-4 text-primary-foreground fill-current" />
+            <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-md border border-border/50 overflow-hidden">
+              <img src="/bdu-logo.png" alt="BDU Logo" className="w-8 h-8 object-contain" />
             </div>
             <div>
               <p className="font-bold text-foreground text-[15px] tracking-tight leading-none bg-clip-text">GibiPulse</p>
@@ -267,7 +267,10 @@ export default function StudentPage() {
 
       <main className="relative z-10 max-w-2xl mx-auto px-5 py-8 sm:py-12">
         {/* Dynamic Hero */}
-        <div className="text-center mb-10 space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="text-center mb-10 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="flex justify-center mb-6">
+             <img src="/bdu-full-logo.png" alt="Bahir Dar University" className="h-16 w-auto object-contain dark:invert transition-all" />
+          </div>
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold uppercase tracking-wider mb-2">
             <Sparkles className="w-3.5 h-3.5" />
             AI-Powered Reporting

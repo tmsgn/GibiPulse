@@ -111,8 +111,8 @@ export default function FeedPage() {
       <div className="bg-card border-b border-border sticky top-0 z-20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <Zap className="w-4 h-4 text-primary-foreground" />
+            <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-md border border-border/50 overflow-hidden">
+              <img src="/bdu-logo.png" alt="BDU Logo" className="w-8 h-8 object-contain" />
             </div>
             <div>
               <p className="font-bold text-foreground text-sm">GibiPulse</p>
