@@ -10,6 +10,7 @@ import { ISSUE_TYPE_CONFIG, SEVERITY_CONFIG, timeAgo } from "@/lib/config";
 import type { AnalysisResult } from "@/lib/types";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { createClient } from "@/lib/supabase/client";
+import { VoiceWave } from "@/components/ui/voice-wave";
 
 const EXAMPLE_REPORTS = [
   "Abdisa aga wuha tefa again, we can't even wash our hands",
@@ -52,7 +53,11 @@ export default function StudentPage() {
   const [voiceLang, setVoiceLang] = useState<"am-ET" | "en-US">("am-ET");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [detectedType, setDetectedType] = useState<string | null>(null);
+  const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
   const recognitionRef = useRef<any>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const supabase = createClient();
 
   const runMagicFill = async (text: string) => {
@@ -89,6 +94,40 @@ export default function StudentPage() {
     }
   };
 
+  const startAudioAnalysis = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+
+      const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
+      const audioContext = new AudioContextClass();
+      audioContextRef.current = audioContext;
+
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 256;
+      analyserRef.current = analyser;
+
+      const source = audioContext.createMediaStreamSource(stream);
+      source.connect(analyser);
+
+      setAnalyser(analyser);
+    } catch (err) {
+      console.error("Failed to start audio analysis:", err);
+    }
+  };
+
+  const stopAudioAnalysis = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
+    }
+    setAnalyser(null);
+  };
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -118,12 +157,17 @@ export default function StudentPage() {
 
         recognitionRef.current.onend = () => {
           setIsRecording(false);
+          stopAudioAnalysis();
         };
       }
     }
+
+    return () => {
+      stopAudioAnalysis();
+    };
   }, []);
 
-  const toggleRecording = () => {
+  const toggleRecording = async () => {
     if (!recognitionRef.current) {
       toast.error("Speech recognition not supported in your browser. Use Chrome or Edge.");
       return;
@@ -131,8 +175,10 @@ export default function StudentPage() {
 
     if (isRecording) {
       recognitionRef.current.stop();
+      stopAudioAnalysis();
     } else {
       try {
+        await startAudioAnalysis();
         recognitionRef.current.lang = voiceLang;
         recognitionRef.current.start();
         setIsRecording(true);
@@ -140,6 +186,7 @@ export default function StudentPage() {
       } catch (err) {
         console.error("Failed to start recognition:", err);
         setIsRecording(false);
+        stopAudioAnalysis();
       }
     }
   };
@@ -443,9 +490,7 @@ export default function StudentPage() {
                     <span className={voiceLang === "am-ET" ? "text-[#005189] dark:text-blue-400" : "text-muted-foreground"}>አማ</span>
                   </button>
                   {isRecording && (
-                    <span className="text-[10px] font-bold text-red-600 animate-pulse uppercase tracking-wider bg-red-50 dark:bg-red-950/30 px-2 py-0.5 rounded-full border border-red-100 dark:border-red-900/50">
-                      Listening...
-                    </span>
+                    <VoiceWave analyser={analyser} />
                   )}
                   <button
                     type="button"
