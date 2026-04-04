@@ -20,6 +20,7 @@ import {
 import { ISSUE_TYPE_CONFIG, SEVERITY_CONFIG, STATUS_CONFIG, timeAgo } from "@/lib/config";
 import type { ReportGroup, IssueType, SeverityLevel } from "@/lib/types";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { createClient } from "@/lib/supabase/client";
 
 // ─── Star Rating Widget ───────────────────────────────────────────────────────
 function StarRating({ value, onChange }: { value: number; onChange: (v: number) => void }) {
@@ -204,7 +205,6 @@ export default function FeedPage() {
 
   useEffect(() => {
     fetchGroups();
-    const interval = setInterval(fetchGroups, 15000);
     
     // Manage persistent session ID for feedback if student isn't explicitly logged in
     let sid = localStorage.getItem("gibipulse_device_session");
@@ -214,7 +214,24 @@ export default function FeedPage() {
     }
     setSessionId(sid);
 
-    return () => clearInterval(interval);
+    const supabase = createClient();
+    
+    // Subscribe to realtime database changes for zero-latency updates
+    const channel = supabase
+      .channel("feed-dashboard-changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "report_groups" },
+        (payload) => {
+          console.log("Realtime update received:", payload);
+          fetchGroups();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [fetchGroups]);
 
   const handleRefresh = async () => {

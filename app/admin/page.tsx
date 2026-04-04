@@ -90,8 +90,25 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchGroups();
-    const interval = setInterval(fetchGroups, 15000);
-    return () => clearInterval(interval);
+
+    const supabase = createClient();
+    
+    // Subscribe to realtime database changes for zero-latency updates
+    const channel = supabase
+      .channel("admin-dashboard-changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "report_groups" },
+        (payload) => {
+          console.log("Realtime update received:", payload);
+          fetchGroups();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [fetchGroups]);
 
   const handleRefresh = async () => {
@@ -206,9 +223,9 @@ export default function AdminDashboard() {
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            <div className="hidden sm:flex items-center gap-1.5 bg-green-500/20 text-green-300 text-xs px-2.5 py-1.5 rounded border border-green-500/30">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-              Live — 15s
+            <div className="hidden sm:flex items-center gap-1.5 bg-green-50 text-green-700 text-xs px-2.5 py-1.5 rounded-full border border-green-200">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+              Live WebSockets
             </div>
             <Button
               variant="outline"
