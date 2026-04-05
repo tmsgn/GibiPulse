@@ -303,7 +303,7 @@ export default function StudentPage() {
           <div className="max-w-2xl mx-auto px-5 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded bg-white flex items-center justify-center overflow-hidden">
-                <img src="/bdu-logo.png" alt="BDU" className="w-8 h-8 object-contain" />
+                <img src="/gibipulse-logo.jpg" alt="GibiPulse Logo" className="w-8 h-8 object-cover" />
               </div>
               <div>
                 <p className="font-bold text-white text-sm leading-none">GibiPulse</p>
@@ -393,7 +393,7 @@ export default function StudentPage() {
         <div className="max-w-2xl mx-auto px-5 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded bg-white flex items-center justify-center overflow-hidden shadow-sm hover:scale-105 transition-transform cursor-pointer" onClick={() => setView("report")}>
-              <img src="/bdu-logo.png" alt="BDU Logo" className="w-8 h-8 object-contain" />
+              <img src="/gibipulse-logo.jpg" alt="GibiPulse Logo" className="w-10 h-10 object-cover" />
             </div>
             <div>
               <p className="font-bold text-white text-[15px] leading-none">GibiPulse</p>
@@ -448,8 +448,12 @@ export default function StudentPage() {
           <>
             {/* Page intro */}
             <div className="mb-6">
-          <div className="flex items-center gap-3 mb-4">
-            <img src="/bdu-full-logo.png" alt="Bahir Dar University" className="h-14 w-auto object-contain" />
+          <div className="flex items-center gap-4 mb-6">
+            <img src="/gibipulse-logo.jpg" alt="GibiPulse Logo" className="h-24 w-24 object-cover rounded-full shadow-md border-4 border-white dark:border-slate-800" />
+            <div className="space-y-1">
+              <h1 className="text-3xl font-black text-[#005189] dark:text-blue-400 tracking-tight leading-none uppercase">GibiPulse</h1>
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest pl-0.5">by 4EVER — <i>Innovation at BDU</i></p>
+            </div>
           </div>
           <h1 className="text-2xl font-bold text-foreground mb-1">Campus Issue Report Form</h1>
           <p className="text-sm text-muted-foreground">

@@ -46,7 +46,7 @@ export default function AdminLoginPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-6">
-             <img src="/bdu-full-logo.png" alt="Bahir Dar University" className="h-20 w-auto object-contain dark:invert transition-all" />
+             <img src="/gibipulse-logo.jpg" alt="GibiPulse Logo" className="h-24 w-24 object-cover rounded-full shadow-xl border-4 border-white transition-all transform hover:scale-105" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-transparent bg-clip-text bg-linear-to-r from-foreground to-foreground/70">
             GibiPulse

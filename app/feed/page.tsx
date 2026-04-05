@@ -299,7 +299,7 @@ export default function FeedPage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded bg-white flex items-center justify-center overflow-hidden shadow-sm">
-              <img src="/bdu-logo.png" alt="BDU Logo" className="w-8 h-8 object-contain" />
+              <img src="/gibipulse-logo.jpg" alt="GibiPulse Logo" className="w-10 h-10 object-cover rounded-full border-2 border-white/20" />
             </div>
             <div>
               <p className="font-bold text-white text-sm leading-none">GibiPulse</p>
