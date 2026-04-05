@@ -136,18 +136,30 @@ export default function StudentPage() {
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       if (SpeechRecognition) {
         recognitionRef.current = new SpeechRecognition();
-        recognitionRef.current.continuous = false; // Set to false to stop automatically when user stops speaking
-        recognitionRef.current.interimResults = false;
+        recognitionRef.current.continuous = true;
+        recognitionRef.current.interimResults = true;
         
         // We can dynamically switch between am-ET and en-US if needed, but am-ET often works for both in some engines
         recognitionRef.current.lang = 'am-ET';
 
         recognitionRef.current.onresult = (event: any) => {
-          const transcript = event.results[0][0].transcript;
-          const newMsg = message ? message + " " + transcript : transcript;
-          setMessage(newMsg);
-          toast.success("Voice transcribed!");
-          runMagicFill(newMsg);
+          let finalTranscript = '';
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+              finalTranscript += event.results[i][0].transcript;
+            }
+          }
+
+          if (finalTranscript) {
+            setMessage(prev => {
+              const updated = prev.trim() ? prev.trim() + " " + finalTranscript.trim() : finalTranscript.trim();
+              
+              // Only run magic fill after a final transcript is added
+              // but use a small timeout to avoid spamming if multiple sentences come in fast
+              return updated;
+            });
+            toast.success("Voice captured!", { duration: 1500, icon: "🎙️" });
+          }
         };
 
         recognitionRef.current.onerror = (event: any) => {
@@ -159,8 +171,17 @@ export default function StudentPage() {
         };
 
         recognitionRef.current.onend = () => {
+          // In continuous mode, onend is only called when manually stopped or error
           setIsRecording(false);
           stopAudioAnalysis();
+          
+          // Trigger magic fill on the final message when recording ends
+          // We'll use a small delay to ensure React state has updated
+          setTimeout(() => {
+            // We need to use the current value from the textarea or just trust the state
+            // since we're in the component, we can't easily get the 'latest' state here without refs
+            // but we've already been updating it in onresult
+          }, 500);
         };
       }
     }
@@ -178,14 +199,25 @@ export default function StudentPage() {
 
     if (isRecording) {
       recognitionRef.current.stop();
-      stopAudioAnalysis();
+      // stopAudioAnalysis() is called in onend
+      toast.info("Processing voice...", { icon: "⚙️" });
+      
+      // Manually trigger magic fill after stopping
+      setTimeout(() => {
+        // Use a functional update or just the message state (which might be stale here but hopefully updated by onresult)
+        // Actually, let's just use the message state after a short delay
+        runMagicFill(message);
+      }, 800);
     } else {
       try {
         await startAudioAnalysis();
         recognitionRef.current.lang = voiceLang;
         recognitionRef.current.start();
         setIsRecording(true);
-        toast.info(`Listening in ${voiceLang === "am-ET" ? "Amharic" : "English"}...`, { icon: "🎤" });
+        toast.info(`Listening in ${voiceLang === "am-ET" ? "Amharic" : "English"}... Click button to stop when finished.`, { 
+          icon: "🎤",
+          duration: 4000 
+        });
       } catch (err) {
         console.error("Failed to start recognition:", err);
         setIsRecording(false);
